@@ -1,8 +1,8 @@
 package com.datagroup.ESLS.common.exception;
 
-import com.datagroup.ESLS.common.response.AjaxResult;
 import com.datagroup.ESLS.common.response.ResultBean;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.shiro.authz.UnauthorizedException;
 import org.hibernate.exception.SQLGrammarException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
@@ -41,30 +41,30 @@ public class DefaultExceptionHandler
      * 请求方式不支持
      */
     @ExceptionHandler({ HttpRequestMethodNotSupportedException.class })
-    public AjaxResult handleException(HttpRequestMethodNotSupportedException e)
+    public ResponseEntity<ResultBean> handleException(HttpRequestMethodNotSupportedException e)
     {
         log.error(e.getMessage(), e);
-        return AjaxResult.error("不支持' " + e.getMethod() + "'请求");
+        return new ResponseEntity<>(ResultBean.error("不支持' " + e.getMethod() + "'请求(未登录)"), HttpStatus.BAD_REQUEST);
     }
 
     /**
      * 拦截未知的运行时异常
      */
     @ExceptionHandler(RuntimeException.class)
-    public AjaxResult notFount(RuntimeException e)
+    public ResponseEntity<ResultBean> notFount(RuntimeException e)
     {
-        log.error("运行时异常:", e);
-        return AjaxResult.error(" 参数有误 [ 请确保输入参数的正确性 检查相应ID的数据是否在数据库存在 ]");
+        log.error("RuntimeException异常:", e);
+        return new ResponseEntity<>(ResultBean.error(e.toString()), HttpStatus.BAD_REQUEST);
     }
 
     /**
      * 系统异常
      */
     @ExceptionHandler(Exception.class)
-    public AjaxResult handleException(Exception e)
+    public ResponseEntity<ResultBean> handleException(Exception e)
     {
-        log.error(e.getMessage(), e);
-        return AjaxResult.error(" 参数有误 [ 请确保输入参数的正确性 ]");
+        log.error("Exception异常", e);
+        return new ResponseEntity<>(ResultBean.error(e.toString()), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Map<String,Object> handleBindException(MethodArgumentNotValidException ex) {
@@ -88,11 +88,11 @@ public class DefaultExceptionHandler
     }
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ResultBean> MissingServletRequestParameterExceptionHandler(MissingServletRequestParameterException e){
-        return new ResponseEntity<>(ResultBean.error("page字段和count字段必须同时提供 "), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResultBean.error("page字段和count字段必须同时提供("+e.getMessage()+")"), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ResultBean> HttpMessageNotReadableExceptionHandler(HttpMessageNotReadableException e){
-        return new ResponseEntity<>(ResultBean.error("请注意参数类型！！如: [ swagger测试添加商品时去掉photo字段 ] [ list勿传请{}传null值 ] [勿传日期字段]"), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResultBean.error("请注意参数类型！！如: [ swagger测试添加商品时去掉photo字段 ] [ list勿传请{}传null值 ] [勿传日期字段]("+e.getMessage()+")"), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<ResultBean> ConstraintViolationExceptionHandler(ConstraintViolationException e){
@@ -102,17 +102,23 @@ public class DefaultExceptionHandler
             for (ConstraintViolation<?> item : violations)
                 errors.put(item.getPropertyPath().toString(),environment.getProperty(item.getMessage()));
             return new ResponseEntity<>(new ResultBean<>(errors,"参数错误"), HttpStatus.BAD_REQUEST);
-
         }
-        return new ResponseEntity<>(ResultBean.error("请注意json中json字段的ID值！！如: [ JSON字段的ID值必须在数据库中存在 ] [ JSON字段传多个值时只有ID值生效 ] [ 建议JSON字段只传对于的ID值 ]"), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResultBean.error("SQLGrammarException请注意json中json字段的ID值！！如: [ JSON字段的ID值必须在数据库中存在 ] [ JSON字段传多个值时只有ID值生效 ] [ 建议JSON字段只传对于的ID值 ]("+e.toString()+")"), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(SQLGrammarException.class)
     public ResponseEntity<ResultBean> SQLGrammarExceptionHandler(SQLGrammarException e){
-        return new ResponseEntity<>(ResultBean.error("SQL语句执行错误!! 如: [ 指定ID的数据在数据库是否存在 ] [ 是否多个标签关联了同一个商品 ] [ 建议选择属性进行标签商品绑定时 选择二者的唯一标识属性 ]"), HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResultBean.error("SQL语句执行错误!! 如: [ 指定ID的数据在数据库是否存在 ] [ 是否多个标签关联了同一个商品 ] [ 建议选择属性进行标签商品绑定时 选择二者的唯一标识属性 ]("+e.toString()+")"), HttpStatus.BAD_REQUEST);
     }
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ResultBean> DataIntegrityViolationExceptionHandler(DataIntegrityViolationException e){
-        return new ResponseEntity<>(ResultBean.error("SQL语句执行错误!! 如: [ 违背数据唯一性 barCode字段不允许重复 ] [ 指定ID的数据在数据库是否存在 ]"), HttpStatus.BAD_REQUEST);
-
+        return new ResponseEntity<>(ResultBean.error("SQL语句执行错误!! 如: [ 违背数据唯一性 barCode字段不允许重复 ] [ 指定ID的数据在数据库是否存在 ]("+e.toString()+")"), HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ResultBean> UnauthorizedExceptionHandler(UnauthorizedException e){
+        return new ResponseEntity<>(ResultBean.error("权限不足("+e.toString()+")"), HttpStatus.BAD_REQUEST);
+    }
+    @ExceptionHandler(TagServiceException.class)
+    public ResponseEntity<ResultBean> TagServiceExceptionHandler(TagServiceException tagServiceException){
+        return new ResponseEntity<>(ResultBean.error(tagServiceException.toString()), HttpStatus.BAD_REQUEST);
     }
 }

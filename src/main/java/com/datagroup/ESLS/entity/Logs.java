@@ -29,7 +29,7 @@ public class Logs implements Serializable {
     }
 
     @Basic
-    @Column(name = "username", nullable = true, length = 255)
+    @Column(name = "username", length = 255)
     public String getUsername() {
         return username;
     }
@@ -39,7 +39,7 @@ public class Logs implements Serializable {
     }
 
     @Basic
-    @Column(name = "operation", nullable = true, length = 255)
+    @Column(name = "operation", length = 255)
     public String getOperation() {
         return operation;
     }
@@ -49,7 +49,7 @@ public class Logs implements Serializable {
     }
 
     @Basic
-    @Column(name = "method", nullable = true, length = 255)
+    @Column(name = "method", length = 255)
     public String getMethod() {
         return method;
     }
@@ -59,7 +59,7 @@ public class Logs implements Serializable {
     }
 
     @Basic
-    @Column(name = "params", nullable = true, length = 255)
+    @Column(name = "params", length = 255)
     public String getParams() {
         return params;
     }
@@ -69,7 +69,7 @@ public class Logs implements Serializable {
     }
 
     @Basic
-    @Column(name = "ip", nullable = true, length = 255)
+    @Column(name = "ip", length = 255)
     public String getIp() {
         return ip;
     }
@@ -79,7 +79,7 @@ public class Logs implements Serializable {
     }
 
     @Basic
-    @Column(name = "runnint_time", nullable = true, length = 255)
+    @Column(name = "runnint_time", length = 255)
     public String getRunnintTime() {
         return runnintTime;
     }
@@ -89,7 +89,7 @@ public class Logs implements Serializable {
     }
 
     @Basic
-    @Column(name = "create_date", nullable = false)
+    @Column(name = "create_date")
     public Timestamp getCreateDate() {
         return createDate;
     }

@@ -17,7 +17,6 @@ public class GoodsWriter  implements ItemWriter<Good> {
     @Override
     public void write(List<? extends Good> list) throws Exception {
         for(Good good:list) {
-            System.out.println(good);
             try{
             goodService.saveOne(good);
             }

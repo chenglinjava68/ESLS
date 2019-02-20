@@ -8,7 +8,6 @@ import org.springframework.validation.BindException;
 public class GoodsCsvMapper implements FieldSetMapper<Good> {
     @Override
     public Good mapFieldSet(FieldSet fieldSet) throws BindException {
-        byte promotion = 0;
         double price = 0,promotePrice = 0;
         try {
             price = fieldSet.readDouble("price");

@@ -3,26 +3,33 @@ package com.datagroup.ESLS.dto;
 import lombok.Data;
 import lombok.ToString;
 
+import java.sql.Timestamp;
+
 @Data
 @ToString
 public class RouterVo {
     private long id;
-    private Integer mac;
+    private String mac;
     private String ip;
     private Integer port;
     private String channelId;
     private Byte state;
-    private String serialNumber;
-    private String productor;
-    private Integer softVersion;
-    private Integer sendBaudrate;
-    private Integer receiveBaudrate;
-    private Double longPeriod;
-    private Double shortPeriod;
-    private Integer frequency;
-    private Integer power;
-    private Integer updateState;
-    private Integer hardVersion;
-    private String productBatch;
-    private Byte prepareUpdate;
+    private String softVersion;
+    private String frequency;
+    private String hardVersion;
+    private Timestamp heartBeat;
+    private String barCode;
+    private Byte isWorking;
+    private Timestamp completeTime;
+
+    private long shopId;
+    private byte type;
+    private String number;
+    private String fatherShop;
+    private String name;
+    private String manager;
+    private String address;
+    private String account;
+    private String password;
+    private String phone;
 }

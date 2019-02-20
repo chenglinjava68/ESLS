@@ -17,13 +17,47 @@ public class CommandCategory {
         return COMMAND_CATEGORY;
     }
 
-    public static byte[] getResponse(String key, byte[] header) {
+    public static byte[] getResponse(String key, byte[] header,int type,byte[] address) {
+        byte[] result = new byte[13];
+        CategoryItem categoryItem = COMMAND_CATEGORY.get(key);
+        if(type == CommandConstant.COMMANDTYPE_TAG){
+            // int length = address.length + message.length;
+            // 通讯对象22对标签
+            result[0] = 0x22;
+            result[1] = 0x22;
+            // 标签地址
+            result[4] = address[0];
+            result[5] = address[1];
+            result[6] = address[2];
+            result[7] = address[3];
+        }
+        else if(type == CommandConstant.COMMANDTYPE_ROUTER){
+            // 通讯对象11对路由器
+            result[0] = 0x11;
+            result[1] = 0x11;
+            // 地址
+            result[4] = (byte) 0xff;
+            result[5] = (byte) 0xff;
+            result[6] = (byte) 0xff;
+            result[7] = (byte) 0xff;
+        }
+        // 长度
+        result[2] = 0;
+        result[3] = 9 ;
+        //数据段
+        result[8] = categoryItem.getCommand_class();
+        result[9] = categoryItem.getCommand_id();
+        result[10] = 2;
+        result[11] = header[0];
+        result[12] = header[1];
+        return result;
+    }
+
+    public static byte[] getResponse(String key) {
         byte[] result = new byte[4];
         CategoryItem categoryItem = COMMAND_CATEGORY.get(key);
         result[0] = categoryItem.getCommand_class();
         result[1] = categoryItem.getCommand_id();
-        result[2] = header[0];
-        result[3] = header[1];
         return result;
     }
 
@@ -34,7 +68,16 @@ public class CommandCategory {
             return CommandConstant.NACK;
         } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.OVERTIME).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.OVERTIME).getCommand_id()) {
             return CommandConstant.OVERTIME;
-        } else {
+        } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.TAGRESPONSE).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.TAGRESPONSE).getCommand_id()) {
+            return CommandConstant.TAGRESPONSE;
+        } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.ROUTERRESPONSE).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.ROUTERRESPONSE).getCommand_id()) {
+            return CommandConstant.ROUTERRESPONSE;
+        } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.ROUTERREGISTY).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.ROUTERREGISTY).getCommand_id()) {
+            return CommandConstant.ROUTERREGISTY;
+        }
+        else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.TAGREGISTY).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.TAGREGISTY).getCommand_id()) {
+            return CommandConstant.TAGREGISTY;
+        }else {
             return null;
         }
     }

@@ -53,20 +53,14 @@ public class NettyClient implements Callable {
     }
 
     public String startAndWrite() throws InterruptedException {
-//        init();
-//        f = b.connect(this.address).sync();
-//        Channel channel = f.channel();
-//        // 等待连接激活
-//        while (!channel.isActive()) {
-//            Thread.sleep(1000);
-//        }
-        // 传数据给服务端
-
         ServerChannelHandler serverChannelHandler = SpringContextUtil.serverChannelHandler;
         ChannelPromise promise = serverChannelHandler.sendMessage(channel,send);
         promise.await();
-       // f.channel().closeFuture().sync();
-        return serverChannelHandler.getData();
+        String result = serverChannelHandler.getData(channel, send);
+        System.out.println("startAndWrite 开始："+serverChannelHandler.getMapSize());
+        serverChannelHandler.removeMapWithKey(channel, send);
+        System.out.println("startAndWrite 结束："+serverChannelHandler.getMapSize());
+        return result;
     }
 
     @Override

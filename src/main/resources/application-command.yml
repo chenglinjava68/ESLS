@@ -28,4 +28,17 @@ category:
     OVERTIME:
       command_class: 0x01
       command_id: 0x03
+    TAGRESPONSE:
+      command_class: 0x05
+      command_id: 0x01
+    ROUTERRESPONSE:
+      command_class: 0x05
+      command_id: 0x02
+    ROUTERREGISTY:
+      command_class: 0x02
+      command_id: 0x03
+    TAGREGISTY:
+      command_class: 0x02
+      command_id: 0x01
+
 

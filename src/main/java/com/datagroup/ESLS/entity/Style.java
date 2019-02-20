@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.builder.ToStringExclude;
 
 import javax.persistence.*;
@@ -17,6 +18,7 @@ import java.util.Objects;
 @Entity
 @Table(name = "styles", schema = "tags", catalog = "")
 @Data
+@NoArgsConstructor
 public class Style implements Serializable {
     @Id
     @Column(name = "id", nullable = false)

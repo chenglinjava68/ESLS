@@ -6,8 +6,7 @@ import lombok.Data;
 public class RequestItem {
     private String query;
     private String queryString;
-    private String beginTime;
-    private String cycleTime;
+    private String cron;
     public RequestItem(){}
     public RequestItem(String query,String queryString){
         this.query = query;

@@ -37,7 +37,8 @@ public class UploadController {
             return new ResponseEntity<>(ResultBean.error("文件为空，请重新上传"), HttpStatus.NOT_ACCEPTABLE);
         }
         try {
-            String fileName = file.getOriginalFilename()+ UUID.randomUUID().toString();
+           // String fileName = file.getOriginalFilename()+ UUID.randomUUID().toString();
+            String fileName =  UUID.randomUUID().toString()+file.getOriginalFilename();
             String filePath = UPLOAD_FOLDER + FileConstant.ModeMap.get(mode);
             if (FileUtil.judeFileExists(filePath, fileName))
                 return new ResponseEntity<>(ResultBean.error("文件已经存在，请重新上传"), HttpStatus.NOT_ACCEPTABLE);

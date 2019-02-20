@@ -14,31 +14,89 @@ public class SqlConstant {
     public static String QUERY_ALL_TABLE = "SELECT table_name FROM information_schema.tables WHERE  table_schema= 'tags' ";
 
     public static String getQuerySql(String table, String query, String connection, String queryString) {
-        return new StringBuffer().append(SELECT_QUERY)
+        if (query!=null && query.contains(" ")) {
+            StringBuffer sql = new StringBuffer();
+            sql.append(SELECT_QUERY)
+                    .append(table)
+                    .append(" where ");
+            int i = 0;
+            if (connection.equals("like"))
+                queryString = "\'%" + queryString + "%\'";
+            String[] querys = query.split(" ");
+            for (; i < querys.length - 1; i++) {
+                sql.append(querys[i])
+                        .append(" " + connection + " ")
+                        .append(queryString + " or ");
+            }
+            sql.append(querys[i])
+                    .append(" " + connection + " ")
+                    .append(queryString);
+            return sql.toString();
+        }
+        StringBuffer sql = new StringBuffer().append(SELECT_QUERY)
                 .append(table)
                 .append(" where ")
                 .append(query + " ")
-                .append(connection + " ")
-                .append("\'" + queryString + "\'").toString();
+                .append(connection + " ");
+        if("is".equalsIgnoreCase(connection))
+            sql.append(queryString);
+        else
+            sql.append("\'" + queryString + "\'");
+        return sql.toString();
+    }
+
+    public static String getQuerySql(String table, String connection, RequestBean requestBean) {
+        StringBuffer sql = new StringBuffer().append(SELECT_QUERY)
+                .append(table)
+                .append(" where ");
+        List<RequestItem> items = requestBean.getItems();
+        int i = 0;
+        for (; i < items.size() - 1; i++) {
+            RequestItem requestItem = items.get(i);
+            String queryString = requestItem.getQueryString();
+            if (connection.equals("like"))
+                queryString = "\'%" + requestItem.getQueryString() + "%\'";
+            sql.append(requestItem.getQuery()).append(" " + connection + " ").append(queryString).append(" and ");
+        }
+        RequestItem requestItem = items.get(i);
+        String queryString = requestItem.getQueryString();
+        if (connection.equals("like"))
+            queryString = "\'%" + requestItem.getQueryString() + "%\'";
+        sql.append(requestItem.getQuery()).append(" " + connection + " ").append(queryString);
+        return sql.toString();
     }
 
     public static String getUpdateSql(String table, RequestBean source, RequestBean target) {
         StringBuffer sql = new StringBuffer();
         sql.append("update ").append(table + " set ");
         List<RequestItem> items = target.getItems();
-        RequestItem item ;
-        int i=0;
+        RequestItem item;
+        int i = 0;
         for (; i < items.size() - 1; i++) {
             item = items.get(i);
-            sql.append(item.getQuery() + "=").append("\'"+item.getQueryString() + "\' ,");
+            sql.append(item.getQuery() + "=").append("\'" + item.getQueryString() + "\' ,");
         }
-        sql.append(items.get(i).getQuery() + "=").append("\'"+items.get(i).getQueryString()).append("\' where ");
+        sql.append(items.get(i).getQuery() + "=").append("\'" + items.get(i).getQueryString()).append("\' where ");
         items = source.getItems();
-        for(i=0;i<items.size()-1;i++) {
+        for (i = 0; i < items.size() - 1; i++) {
             item = items.get(i);
-            sql.append(item.getQuery() + "=").append("\'"+item.getQueryString() +"\'"+ " and ");
+            sql.append(item.getQuery() + "=").append("\'" + item.getQueryString() + "\'" + " and ");
         }
-        sql.append(items.get(i).getQuery() + "=").append("\'"+items.get(i).getQueryString() +"\'");
+        sql.append(items.get(i).getQuery() + "=").append("\'" + items.get(i).getQueryString() + "\'");
+        return sql.toString();
+    }
+    public static String getDeleteSql(String table, String query, List<Long> idList) {
+        StringBuffer sql = new StringBuffer();
+        sql.append("delete from ")
+                .append(table)
+                .append(" where ")
+                .append(query)
+                .append(" in ( ");
+        int i = 0;
+        for (; i < idList.size() - 1; i++) {
+            sql.append("\'" + idList.get(i) + "\' , ");
+        }
+        sql.append("\'" + idList.get(i) + "\')");
         return sql.toString();
     }
 
@@ -51,5 +109,6 @@ public class SqlConstant {
         EntityToSqlMap.put("logs", "Logs");
         EntityToSqlMap.put("scans", "Scan");
         EntityToSqlMap.put("users", "User");
+        EntityToSqlMap.put("dispms", "Dispms");
     }
 }

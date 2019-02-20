@@ -8,6 +8,8 @@ import org.springframework.batch.core.launch.JobOperator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import javax.annotation.Resource;
 
@@ -21,9 +23,14 @@ public class BatchController {
     private Job batchJob;
     // 秒分时天月 每1分钟执行1次0 0/1 * * * ?
     @Scheduled(cron = "0 0/1000 * * * ?")
-    public void job3() throws Exception {
-        JobExecution run = jobLauncher.run(batchJob, new JobParametersBuilder().addLong("time",System.currentTimeMillis()).toJobParameters());
-        run.getId();
+    public void job3(){
+        try {
+            JobExecution run = jobLauncher.run(batchJob, new JobParametersBuilder().addLong("time", System.currentTimeMillis()).toJobParameters());
+            run.getId();
+        }
+        catch (Exception e){
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            System.out.println(e);
+        }
     }
-
 }

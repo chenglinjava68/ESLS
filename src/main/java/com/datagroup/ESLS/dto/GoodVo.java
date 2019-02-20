@@ -30,5 +30,6 @@ public class GoodVo {
     private String rfu02;
     private String rfus01;
     private String rfus02;
+    private String regionNames;
     private List<Long> tagIdList = new ArrayList<>();
 }

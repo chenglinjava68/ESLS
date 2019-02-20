@@ -2,6 +2,7 @@ package com.datagroup.ESLS.controller;
 
 import com.datagroup.ESLS.aop.Log;
 import com.datagroup.ESLS.common.request.RequestBean;
+import com.datagroup.ESLS.dto.DispmsVo;
 import com.datagroup.ESLS.dto.StyleVo;
 import com.datagroup.ESLS.common.constant.ArrtributeConstant;
 import com.datagroup.ESLS.common.constant.TableConstant;
@@ -15,6 +16,7 @@ import com.datagroup.ESLS.utils.ConditionUtil;
 import com.datagroup.ESLS.utils.CopyUtil;
 import com.datagroup.ESLS.utils.ResponseUtil;
 import io.swagger.annotations.*;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -100,9 +102,9 @@ public class StyleController {
     @Log("获得指定ID的样式的所有小样式信息")
     public ResponseEntity<ResultBean> getDispmses(@PathVariable Long id){
         List<Dispms> dispmses = dispmsService.findByArrtribute(TableConstant.TABLE_DISPMS, ArrtributeConstant.TAG_STYLEID, String.valueOf(id), Dispms.class);
-        ResponseEntity<ResultBean> result = null;
+        ResponseEntity<ResultBean> result ;
         if ((result = ResponseUtil.testListSize("没有对应ID的小样式", dispmses)) != null) return result;
-        return new ResponseEntity<>(ResultBean.success(dispmses), HttpStatus.OK);
+        return new ResponseEntity<>(ResultBean.success(CopyUtil.copyDispms(dispmses)), HttpStatus.OK);
     }
     @ApiOperation(value = "添加或修改样式信息")
     @PostMapping("/style")
@@ -125,33 +127,14 @@ public class StyleController {
     @ApiOperation(value = "更改指定ID样式的小样式")
     @PostMapping("/sytle/update")
     @Log("更改指定ID样式的小样式")
-    public ResponseEntity<ResultBean> updateStyleById(@RequestParam long styleId, @RequestBody @ApiParam(value = "样式信息json格式") List<Dispms> dispmses) {
-        // 通过styleId更改指定样式
-        List<Style> styleList = styleService.findByArrtribute(TableConstant.TABLE_STYLE, ArrtributeConstant.TABLE_ID, String.valueOf(styleId), Style.class);
-        ResponseEntity<ResultBean> result = null;
+    public ResponseEntity<ResultBean> updateStyleById(@RequestParam long styleId, @RequestBody @ApiParam(value = "样式信息Id List格式") List<Long> dispmIds) {
+        List<Style> styleList = dispmsService.findByArrtribute(TableConstant.TABLE_STYLE, ArrtributeConstant.TABLE_ID, String.valueOf(styleId), Style.class);
+        if(styleList==null || styleList.size()==0)
+            return new ResponseEntity<>(ResultBean.error("没有指定的样式,请先添加样式"), HttpStatus.BAD_REQUEST);
+        ResponseEntity<ResultBean> result ;
         if ((result = ResponseUtil.testListSize("没有对应ID的样式", styleList)) != null) return result;
-        Style style = styleList.get(0);
-        // 更新所有小样式
-        dispmses.forEach(item -> {
-            item.setStyle(style);
-            dispmsService.saveOne(item);
-        });
-        // 通过styleId查找使用了此样式的所有标签实体
-        List<com.datagroup.ESLS.entity.Tag> tagList = tagService.findByArrtribute(TableConstant.TABLE_TAGS, ArrtributeConstant.TAG_STYLEID, String.valueOf(styleId), com.datagroup.ESLS.entity.Tag.class);
-        // 通过标签实体的路由器IP地址发送更改标签内容包
-        tagList.forEach(
-                // 获得所有标签对应的IP地址
-                item -> {
-                    byte[] message = new byte[2];
-                    message[0]=0x02;
-                    message[1]=0x03;
-                    InetSocketAddress target = new InetSocketAddress(item.getRouter().getIp(), item.getRouter().getPort());
-                        //System.out.println("执行结果："+ NettyClient.startAndWrite(target,message));
-                }
-                // 发送命令
-        );
         // 返回前端提示信息
-        return new ResponseEntity<>(ResultBean.success("样式更换成功"), HttpStatus.OK);
+        return new ResponseEntity<>(ResultBean.success(styleService.updateStyleById(styleId,dispmIds,styleList.get(0))), HttpStatus.OK);
     }
     @ApiOperation(value = "刷新选用该样式的标签或设置定期刷新",notes = "定期刷新才需加beginTime和cycleTime字段")
     @ApiImplicitParams({
@@ -159,7 +142,7 @@ public class StyleController {
     })
     @PutMapping("/style/flush")
     @Log("刷新选用该样式的标签或设置定期刷新")
-    public ResponseEntity<ResultBean> flushTags(@RequestBody @ApiParam("标签或路由器信息集合") RequestBean requestBean,@RequestParam  @Min(message = "data.page.min", value = 0)  @Max(message = "data.mode.max", value = 1) Integer mode){
+    public ResponseEntity<ResultBean> flushTags(@RequestBody @ApiParam("样式集合") RequestBean requestBean,@RequestParam  @Min(message = "data.page.min", value = 0)  @Max(message = "data.mode.max", value = 1) Integer mode){
         return new  ResponseEntity<>(new ResultBean(styleService.flushTags(requestBean,mode)),HttpStatus.OK);
     }
 }

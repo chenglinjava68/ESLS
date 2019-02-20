@@ -1,5 +1,6 @@
 package com.datagroup.ESLS.utils;
 
+
 public class ByteUtil {
     private static byte[] ACK = new byte[5];
     private static byte[] NACK = new byte[5];
@@ -24,12 +25,62 @@ public class ByteUtil {
             sum += b;
         return sum;
     }
-
-    public static String getRealMessage(byte[] request) {
+    public static String getMergeMessage(byte[] request){
         StringBuffer sb = new StringBuffer();
         for (byte item : request) {
-            sb.append(item);
+            sb.append(SpringContextUtil.toHex(item));
         }
+        return sb.toString();
+    }
+    public static byte[] getMacMessage(String mac){
+        byte[] result = new byte[6];
+        // mac地址 02 00 00 d2 ff 38  38 38 38 38 38 38
+        result[0] = SpringContextUtil.hexStringtoByte(mac.substring(0, 2));
+        result[1] = SpringContextUtil.hexStringtoByte(mac.substring(2, 4));
+        result[2] = SpringContextUtil.hexStringtoByte(mac.substring(4, 6));
+        result[3] = SpringContextUtil.hexStringtoByte(mac.substring(6, 8));
+        result[4] = SpringContextUtil.hexStringtoByte(mac.substring(8, 10));
+        result[5] = SpringContextUtil.hexStringtoByte(mac.substring(10, 12));
+        return result;
+    }
+    public static String getVersionMessage(byte[] request){
+        StringBuffer sb = new StringBuffer();
+        // 字符ASSCI码 48-57(0-9) 65 - 90(A-Z)  97 - 122(a-z)
+        sb.append((char)request[0]);
+        sb.append((char)request[1]);
+        sb.append(".");
+        sb.append((char)request[3]);
+        sb.append((char)request[4]);
+        return sb.toString();
+    }
+    public static String getDigitalMessage(byte[] request){
+        StringBuffer sb = new StringBuffer();
+        for (byte item : request) {
+            sb.append((char)item);
+        }
+        return sb.toString();
+    }
+    public static String getRealMessage(byte[] request) {
+        // 将二进制转为16进制表示 然后在将16进制转成10进制
+        StringBuffer sb = new StringBuffer();
+        for (int i=request.length-1;i>=0;i--) {
+            sb.append(SpringContextUtil.toHex(request[i]));
+        }
+        return String.valueOf(Integer.valueOf(sb.toString(),16));
+    }
+    public static String getIpMessage(byte[] request) {
+        StringBuffer sb = new StringBuffer();
+        int i=0;
+        for (;i<request.length-1;i++) {
+            if(request[i]<0)
+                sb.append((request[i]+256)+".");
+            else
+                sb.append(request[i]+".");
+        }
+        if(request[i]<0)
+            sb.append((request[i]+256));
+        else
+            sb.append(request[i]);
         return sb.toString();
     }
 
@@ -54,5 +105,4 @@ public class ByteUtil {
         ByteUtil.OVER_TIME[3] = _id;
         return OVER_TIME;
     }
-
 }

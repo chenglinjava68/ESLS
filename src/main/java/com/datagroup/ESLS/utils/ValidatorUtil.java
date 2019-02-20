@@ -1,8 +1,6 @@
 package com.datagroup.ESLS.utils;
 
-import com.datagroup.ESLS.common.response.ResultBean;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.ObjectError;
 

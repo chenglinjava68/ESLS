@@ -4,7 +4,6 @@ package com.datagroup.ESLS.serviceImpl;
 import com.datagroup.ESLS.common.request.RequestBean;
 import com.datagroup.ESLS.dao.BaseDao;
 import com.datagroup.ESLS.service.Service;
-import com.sun.xml.internal.messaging.saaj.packaging.mime.util.QEncoderStream;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
@@ -41,5 +40,20 @@ public class BaseServiceImpl implements Service {
     @Override
     public Integer updateByArrtribute(String table, RequestBean source, RequestBean target) {
         return baseDao.updateByArrtribute(table,source,target);
+    }
+
+    @Override
+    public List findAllBySql(String table, String connection, RequestBean requestBean, int page, int count, Class clazz) {
+        return  baseDao.findAllBySql(table,connection,requestBean,page,count,clazz);
+    }
+
+    @Override
+    public List findAllBySql(String table, String connection, String query, String queryString, int page, int count, Class clazz) {
+        return baseDao.findAllBySql(table,connection,query,queryString,page,count,clazz);
+    }
+
+    @Override
+    public Integer deleteByIdList(String table, String query, List idList) {
+        return baseDao.deleteByIdList(table,query,idList);
     }
 }

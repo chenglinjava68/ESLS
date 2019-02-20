@@ -1,11 +1,7 @@
 package com.datagroup.ESLS.utils;
 
-import com.datagroup.ESLS.dto.GoodVo;
-import com.datagroup.ESLS.dto.StyleVo;
-import com.datagroup.ESLS.dto.TagVo;
-import com.datagroup.ESLS.entity.Good;
-import com.datagroup.ESLS.entity.Style;
-import com.datagroup.ESLS.entity.Tag;
+import com.datagroup.ESLS.dto.*;
+import com.datagroup.ESLS.entity.*;
 import org.springframework.beans.BeanUtils;
 
 import java.util.ArrayList;
@@ -70,6 +66,39 @@ public class CopyUtil {
                     }
                 }
         );
+        return resultList;
+    }
+    public static List<DispmsVo> copyDispms(List<Dispms> content){
+        List<DispmsVo> resultList = new ArrayList<>();
+        content.forEach(  item -> {
+            boolean flag = true;
+            if (item == null) flag = false;
+            if (flag) {
+                DispmsVo dispmsVo = new DispmsVo();
+                BeanUtils.copyProperties(item,dispmsVo);
+                resultList.add(dispmsVo);
+            }
+        });
+        return resultList;
+    }
+    public static List<RouterVo> copyRouter(List<Router> content){
+        List<RouterVo> resultList = new ArrayList<>();
+        content.forEach(  item -> {
+            boolean flag = true;
+            if (item == null) flag = false;
+            if (flag) {
+                RouterVo routerVo = new RouterVo();
+                BeanUtils.copyProperties(item,routerVo);
+                if(item.getShop()!=null) {
+                    BeanUtils.copyProperties(item.getShop(), routerVo);
+                    routerVo.setId(item.getId());
+                    routerVo.setShopId(item.getShop().getId());
+                }
+                else
+                    routerVo.setShopId(0);
+                resultList.add(routerVo);
+            }
+        });
         return resultList;
     }
 }

@@ -3,20 +3,24 @@ package com.datagroup.ESLS.controller;
 import com.datagroup.ESLS.aop.Log;
 import com.datagroup.ESLS.common.constant.TableConstant;
 import com.datagroup.ESLS.common.response.ResultBean;
+import com.datagroup.ESLS.dto.DispmsVo;
 import com.datagroup.ESLS.entity.Dispms;
 import com.datagroup.ESLS.service.DispmsService;
+import com.datagroup.ESLS.utils.CopyUtil;
 import io.swagger.annotations.*;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.Min;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
-@Api(description = "样式块API")
+@Api(description = "小样式样式API[字体颜色和背景颜色取值为（黑（0），白（1），红（2））]")
 //实现跨域注解
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class DispmsController {
@@ -38,20 +42,24 @@ public class DispmsController {
         }
         List<Dispms> list = dispmsService.findAll();
         List<Dispms> content = dispmsService.findAll(page,count);
-        return new ResponseEntity<>(new ResultBean(content,list.size()),HttpStatus.OK);
+        return new ResponseEntity<>(new ResultBean(CopyUtil.copyDispms(content),list.size()),HttpStatus.OK);
     }
     @ApiOperation(value = "获取指定ID的样式块信息")
     @GetMapping("/dispm/{id}")
     @Log("获取指定ID的样式块信息")
     public ResponseEntity<ResultBean> getDispmsById(@PathVariable Long id){
         Optional<Dispms> dispms = dispmsService.findById(id);
+        List<Dispms> content = new ArrayList<>();
+        content.add(dispms.get());
         if(dispms.isPresent())
-            return new ResponseEntity<>(new ResultBean(dispms),HttpStatus.OK);
+            return new ResponseEntity<>(new ResultBean(CopyUtil.copyDispms(content)),HttpStatus.OK);
         return new ResponseEntity<>(ResultBean.error("此ID样式块不存在"),HttpStatus.BAD_REQUEST);
     }
     @ApiOperation(value = "添加或修改样式块信息")
     @PostMapping("/dispm")
-    public ResponseEntity<ResultBean> saveDispms(@RequestBody @ApiParam(value="样式块信息json格式") Dispms dispms){
+    public ResponseEntity<ResultBean> saveDispms(@RequestBody @ApiParam(value="样式块信息json格式") DispmsVo dispmsVo){
+        Dispms dispms = new Dispms();
+        BeanUtils.copyProperties(dispmsVo,dispms);
         return new ResponseEntity<>(new ResultBean(dispmsService.saveOne(dispms)),HttpStatus.OK);
     }
     @ApiOperation(value = "根据ID删除样式块信息")

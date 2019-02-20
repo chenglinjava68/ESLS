@@ -24,20 +24,20 @@ public class LogServiceImpl extends BaseServiceImpl implements LogService {
     }
 
     @Override
-    @Cacheable(value = RedisConstant.CACHE_LOGS)
+//    @Cacheable(value = RedisConstant.CACHE_LOGS)
     public List<Logs> findAll(Integer page, Integer count) {
         List<Logs> content = logDao.findAll(PageRequest.of(page, count, Sort.Direction.DESC, "id")).getContent();
         return content;
     }
 
     @Override
-    @Cacheable(value = RedisConstant.CACHE_LOGS)
+//    @Cacheable(value = RedisConstant.CACHE_LOGS)
     public Logs saveOne(Logs logs) {
         return logDao.save(logs);
     }
 
     @Override
-    @Cacheable(value = RedisConstant.CACHE_LOGS)
+//    @Cacheable(value = RedisConstant.CACHE_LOGS)
     public Optional<Logs> findById(Long id) {
         return logDao.findById(id);
     }

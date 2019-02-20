@@ -11,4 +11,8 @@ public class TableConstant {
     public final static String TABLE_LOGS = "logs";
     public final static String TABLE_STYLE = "styles";
     public final static String TABLE_GOODS = "goods";
+    public final static String TABLE_ROLES = "role";
+    public final static String TABLE_PERMISSION = "permission";
+    public final static String TABLE_USER_ROLE = "user_role";
+    public final static String TABLE_ROLE_PERMISSION = "role_permission";
 }

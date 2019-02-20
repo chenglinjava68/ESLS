@@ -68,6 +68,8 @@ public class Good implements Serializable {
     private String rfus01;
     @Column(name = "rfus02")
     private String rfus02;
+    @Column(name = "regionNames")
+    private String regionNames;
     @OneToMany(mappedBy = "good",fetch = FetchType.EAGER)
     @JsonIgnore
     private Collection<Tag> tags;

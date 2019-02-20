@@ -16,6 +16,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
+import java.sql.Timestamp;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
@@ -66,6 +67,7 @@ public class WebLogAcpect {
             logs.setParams(str);
         logger.set(logs);
         logs.setIp(request.getRemoteAddr());
+        logs.setCreateDate(new Timestamp(System.currentTimeMillis()));
         log.info(requestLog.toString());
     }
 
@@ -91,11 +93,11 @@ public class WebLogAcpect {
         WebLogAcpect.log.info("响应结果: " + ret);
         WebLogAcpect.log.info("执行时间 : " + (System.currentTimeMillis() - startTime.get()));
         logs.setRunnintTime(String.valueOf(System.currentTimeMillis() - startTime.get()));
-//        Logs save = logDao.save(logs);
-//        if (save != null)
-//            log.info("日志记录成功！");
-//        else
-//            log.info("日志记录失败！");
+        Logs save = logDao.save(logs);
+        if (save != null)
+            log.info("日志记录成功！");
+        else
+            log.info("日志记录失败！");
     }
 
     @AfterThrowing(pointcut = "weblog()", throwing = "exception")

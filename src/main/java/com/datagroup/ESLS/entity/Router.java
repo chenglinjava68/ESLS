@@ -41,6 +41,10 @@ public class Router implements Serializable {
     private Timestamp heartBeat;
     @Column(name = "barCode")
     private String barCode;
+    @Column(name = "isWorking")
+    private Byte isWorking;
+    @Column(name = "completeTime")
+    private Timestamp completeTime;
     @ManyToOne
     @JoinColumn(name = "shopid", referencedColumnName = "id")
     private Shop shop;

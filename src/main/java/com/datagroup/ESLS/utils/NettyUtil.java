@@ -1,32 +1,84 @@
 package com.datagroup.ESLS.utils;
 
+import com.datagroup.ESLS.dto.TagsAndRouter;
 import com.datagroup.ESLS.netty.client.NettyClient;
+import com.datagroup.ESLS.netty.command.CommandConstant;
+import com.datagroup.ESLS.netty.server.ServerChannelHandler;
 import io.netty.channel.Channel;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 public class NettyUtil{
     // 单例模式
     @Autowired
     private ExecutorService executorService;
     public String sendMessage(Channel channel, byte[] message) {
+        SpringContextUtil.addWorkingChannel(channel);
         try {
+            //   ExecutorService executorService = Executors.newSingleThreadExecutor();
             NettyClient nettyClient = new NettyClient(channel, message);
             Future future = executorService.submit(nettyClient);
-            // 等待命令执行时间
-            executorService.awaitTermination(Long.parseLong(SpringContextUtil.getCommandTime()), TimeUnit.SECONDS);
-//            System.out.println(isFinish + "==========================");
-//            //如果没有执行完
-//            if (!isFinish) {
-//                //线程池执行结束 不在等待线程执行完毕，直接执行下面的代码
-//                executorService.shutdownNow();
-//            }
+            long begin = System.currentTimeMillis();
+            while(!future.isDone()){
+                long end = System.currentTimeMillis();
+                //System.out.println(end - begin+"ms");
+                if((end - begin)>6000) {
+                    System.out.println("NettyUtil--sendMessage : 命令没有响应");
+                    ServerChannelHandler serverChannelHandler = SpringContextUtil.serverChannelHandler;
+                    System.out.println("startAndWrite 开始："+serverChannelHandler.getMapSize());
+                    serverChannelHandler.removeMapWithKey(channel, message);
+                    System.out.println("startAndWrite 结束："+serverChannelHandler.getMapSize());
+                    future.cancel(true);
+                    return null;
+                }
+            }
             return future.get().toString();
         } catch (Exception e) {
             System.out.println(e);
         }
         return null;
+    }
+    public String sendMessageWithRepeat(Channel channel, byte[] message,int time){
+        waitFreeRouter(channel);
+        String result = sendMessage(channel, message);
+        SpringContextUtil.removeWorkingChannel(channel);
+        for(int i=0;i<time-1;i++){
+            if(result==null|| result.equals("失败")) {
+                result = sendMessage(channel, message);
+                SpringContextUtil.removeWorkingChannel(channel);
+            }
+            if(result!=null && (result.equals("成功") || result.equals("通讯超时")))
+                return result;
+        }
+        System.out.println("NettyUtil--sendMessageWithRepeat : 工作路由器数量:"+SpringContextUtil.getWorkingChannel().size());
+        return "通讯"+time+"次超时";
+    }
+    public static void waitFreeRouter(Channel channel){
+        while(true) {
+            //路由器不工作时退出循环
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+            }
+            if(!SpringContextUtil.isWorking(channel))
+                break;
+        }
+    }
+    public void awakeFirst(List tags){
+        // 对多个标签操作需要先批量唤醒，以路由器为单位进行唤醒
+        List<TagsAndRouter> tagsAndRouters = TagUtil.splitTagsByRouter(tags);
+        for(TagsAndRouter tagsAndRouter : tagsAndRouters)
+            SendCommandUtil.sendAwakeMessage(SpringContextUtil.getAwakeBytes(tagsAndRouter.getTags()), tagsAndRouter.getRouter(), CommandConstant.COMMANDTYPE_ROUTER);
+    }
+    public void awakeOverLast(List tags) {
+        // 以路由器为单位结束唤醒
+        List<TagsAndRouter> tagsAndRouters = TagUtil.splitTagsByRouter(tags);
+        for (TagsAndRouter tagsAndRouter : tagsAndRouters) {
+            Channel channel = SpringContextUtil.getChannelByRouter(tagsAndRouter.getRouter().getId());
+            sendMessageWithRepeat(channel, CommandConstant.COMMAND_BYTE.get(CommandConstant.ROUTERAWAKEOVER), 1);
+        }
     }
 }

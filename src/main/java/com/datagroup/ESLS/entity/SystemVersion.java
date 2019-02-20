@@ -6,8 +6,8 @@ import java.sql.Timestamp;
 import java.util.Objects;
 
 @Entity
-@Table(name = "tb_version", schema = "tags", catalog = "")
-public class TbVersion implements Serializable {
+@Table(name = "SystemVersion", schema = "tags", catalog = "")
+public class SystemVersion implements Serializable {
     private long id;
     private String softVersion;
     private String productor;
@@ -57,11 +57,11 @@ public class TbVersion implements Serializable {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        TbVersion tbVersion = (TbVersion) o;
-        return id == tbVersion.id &&
-                Objects.equals(softVersion, tbVersion.softVersion) &&
-                Objects.equals(productor, tbVersion.productor) &&
-                Objects.equals(date, tbVersion.date);
+        SystemVersion systemVersion = (SystemVersion) o;
+        return id == systemVersion.id &&
+                Objects.equals(softVersion, systemVersion.softVersion) &&
+                Objects.equals(productor, systemVersion.productor) &&
+                Objects.equals(date, systemVersion.date);
     }
 
     @Override

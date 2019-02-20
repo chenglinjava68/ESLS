@@ -1,135 +1,72 @@
 package com.datagroup.ESLS.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+import lombok.Data;
 import lombok.ToString;
+import org.apache.commons.lang3.builder.ToStringExclude;
 
 import javax.persistence.*;
 import java.io.Serializable;
+import java.sql.Timestamp;
+import java.util.List;
 import java.util.Objects;
 @JsonIdentityInfo(
         generator = ObjectIdGenerators.PropertyGenerator.class,
         property = "id")
 @Entity
 @Table(name = "users", schema = "tags", catalog = "")
+@Data
 public class User implements Serializable {
-    private long id;
-    private String name;
-    private String passwd;
-    private byte sex;
-    private String telephone;
-    private String address;
-    private Integer position;
-    private String department;
-    private Shop shop;
-
     @Id
     @Column(name = "id", nullable = false)
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    @Basic
-    @Column(name = "name", nullable = false, length = 255)
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    @Basic
-    @Column(name = "passwd", nullable = true, length = 255)
-    public String getPasswd() {
-        return passwd;
-    }
-
-    public void setPasswd(String passwd) {
-        this.passwd = passwd;
-    }
-
-    @Basic
-    @Column(name = "sex", nullable = false)
-    public byte getSex() {
-        return sex;
-    }
-
-    public void setSex(byte sex) {
-        this.sex = sex;
-    }
-
-    @Basic
-    @Column(name = "telephone", nullable = true, length = 255)
-    public String getTelephone() {
-        return telephone;
-    }
-
-    public void setTelephone(String telephone) {
-        this.telephone = telephone;
-    }
-
-    @Basic
-    @Column(name = "address", nullable = true, length = 255)
-    public String getAddress() {
-        return address;
-    }
-
-    public void setAddress(String address) {
-        this.address = address;
-    }
-
-    @Basic
-    @Column(name = "position", nullable = true)
-    public Integer getPosition() {
-        return position;
-    }
-
-    public void setPosition(Integer position) {
-        this.position = position;
-    }
-
-    @Basic
-    @Column(name = "department", nullable = true, length = 255)
-    public String getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(String department) {
-        this.department = department;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return id == user.id &&
-                sex == user.sex &&
-                Objects.equals(name, user.name) &&
-                Objects.equals(passwd, user.passwd) &&
-                Objects.equals(telephone, user.telephone) &&
-                Objects.equals(address, user.address) &&
-                Objects.equals(position, user.position) &&
-                Objects.equals(department, user.department);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, name, passwd, sex, telephone, address, position, department);
-    }
-
-    @ManyToOne
+    @GeneratedValue(strategy = GenerationType.IDENTITY)//自增主键
+    private long id;
+    @Column(name = "name")
+    private String name;
+    @Column(name = "passwd")
+    private String passwd;
+    @Column(name = "sex")
+    private Byte sex;
+    @Column(name = "telephone")
+    private String telephone;
+    @Column(name = "address")
+    private String address;
+    @Column(name = "department")
+    private String department;
+    @Column(name = "createTime")
+    private Timestamp createTime;
+    @Column(name = "lastLoginTime")
+    private Timestamp lastLoginTime;
+    @Column(name = "status")
+    private Byte status;
+    @ManyToOne(cascade={CascadeType.MERGE})
     @JoinColumn(name = "shopid", referencedColumnName = "id")
-    public Shop getShop() {
-        return shop;
-    }
+    private Shop shop;
+    // 一个用户具有多个角色
+    // 关联角色
+    //@JoinTable: 用于映射中间表
+    //joinColumns: 当前方在中间表的外键字段名称
+    //inverseJoinColumns：对方在中间表的外键字段名称
+    @ToStringExclude
+    @ManyToMany(fetch= FetchType.EAGER)//立即从数据库中进行加载数据;
+    @JoinTable(name = "user_role", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns ={@JoinColumn(name = "role_id") })
+    private List<Role> roleList;
 
-    public void setShop(Shop shop) {
-        this.shop = shop;
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", passwd='" + passwd + '\'' +
+                ", sex=" + sex +
+                ", telephone='" + telephone + '\'' +
+                ", address='" + address + '\'' +
+                ", department='" + department + '\'' +
+                ", createTime=" + createTime +
+                ", lastLoginTime=" + lastLoginTime +
+                ", shop=" + shop +
+                '}';
     }
 }

@@ -25,23 +25,29 @@ public class Tag implements Serializable {
     @Column(name = "apRssi")
     private String apRssi;
     @Column(name = "state")
-    private Integer state;
-    @Column(name = "type")
-    private String type;
+    private Byte state;
     @Column(name = "hardwareVersion")
-    private Integer hardwareVersion;
+    private String hardwareVersion;
     @Column(name = "softwareVersion")
-    private Integer softwareVersion;
-    @Column(name = "updateStatus")
-    private Integer updateStatus;
+    private String softwareVersion;
+    @Column(name = "waitUpdate")
+    private Integer waitUpdate;
     @Column(name = "forbidState")
     private Integer forbidState;
     @Column(name = "execTime")
     private Integer execTime;
-    @Column(name = "comleteTime")
-    private Timestamp comleteTime;
+    @Column(name = "completeTime")
+    private Timestamp completeTime;
     @Column(name = "barCode")
     private String barCode;
+    @Column(name = "tagAddress")
+    private String tagAddress;
+    @Column(name = "screenType")
+    private String screenType;
+    @Column(name = "resolutionWidth")
+    private String resolutionWidth;
+    @Column(name = "resolutionHeight")
+    private String resolutionHeight;
     @ManyToOne
     @JoinColumn(name = "goodid", referencedColumnName = "id")
     private Good good;

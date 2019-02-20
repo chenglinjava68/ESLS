@@ -45,12 +45,12 @@ public class LogsController {
         Optional<Logs> result = logService.findById(id);
         if(result.isPresent())
             return new ResponseEntity<>(new ResultBean(result),HttpStatus.OK);
-        return new ResponseEntity<>(ResultBean.error("此ID店铺不存在"),HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResultBean.error("此ID日志不存在"),HttpStatus.BAD_REQUEST);
     }
 
     @ApiOperation(value = "添加或修改日志信息")
     @PostMapping("/log")
-    public ResponseEntity<ResultBean>  saveLog(@RequestBody @ApiParam(value = "样店铺信息json格式")  Logs logs) {
+    public ResponseEntity<ResultBean>  saveLog(@RequestBody @ApiParam(value = "日志信息json格式")  Logs logs) {
         return new ResponseEntity<>(new ResultBean(logService.saveOne(logs)),HttpStatus.OK);
     }
 
@@ -60,6 +60,6 @@ public class LogsController {
         boolean flag = logService.deleteById(id);
         if(flag)
             return new ResponseEntity<>(ResultBean.success("删除成功"),HttpStatus.OK);
-        return new ResponseEntity<>(ResultBean.success("删除失败！没有指定ID的店铺"),HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(ResultBean.success("删除失败！没有指定ID的日志"),HttpStatus.BAD_REQUEST);
     }
 }

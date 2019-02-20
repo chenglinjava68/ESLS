@@ -10,4 +10,7 @@ public class ResponseBean {
         this.sum = sum;
         this.successNumber = successNumber;
     }
+    public boolean isError(){
+        return successNumber==0;
+    }
 }

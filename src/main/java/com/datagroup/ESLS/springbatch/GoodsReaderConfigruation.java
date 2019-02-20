@@ -28,8 +28,6 @@ import java.io.File;
 
 public class GoodsReaderConfigruation {
     @Autowired
-    private JobBuilderFactory jobBuilderFactory;
-    @Autowired
     private StepBuilderFactory stepBuilderFactory;
 
     @Value("${project.profile}")

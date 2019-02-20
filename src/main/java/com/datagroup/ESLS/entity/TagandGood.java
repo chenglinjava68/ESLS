@@ -12,7 +12,7 @@ import java.util.Objects;
         generator = ObjectIdGenerators.PropertyGenerator.class,
         property = "id")
 @Entity
-@Table(name = "tb_tagsandgoods", schema = "tags", catalog = "")
+@Table(name = "tagsandgoods", schema = "tags", catalog = "")
 public class TagandGood implements Serializable {
     private long id;
     private double price;
