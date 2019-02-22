@@ -3,49 +3,27 @@ package com.datagroup.ESLS.utils;
 
 import com.datagroup.ESLS.common.constant.StyleNumberToHeight;
 import com.datagroup.ESLS.common.constant.StyleType;
-import com.datagroup.ESLS.common.constant.TableConstant;
 import com.datagroup.ESLS.common.response.ByteResponse;
+import com.datagroup.ESLS.dto.ByteAndRegion;
 import com.datagroup.ESLS.entity.*;
-import com.datagroup.ESLS.graphic.BarCode;
-import com.datagroup.ESLS.graphic.QRCode;
 import com.datagroup.ESLS.netty.server.ServerChannelHandler;
-import com.datagroup.ESLS.service.GoodService;
 import com.datagroup.ESLS.service.RouterService;
 import io.netty.channel.Channel;
-import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.DefaultChannelGroup;
-import io.netty.util.concurrent.GlobalEventExecutor;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
-import java.net.SocketAddress;
 import java.util.*;
 import java.util.List;
-import javax.imageio.ImageIO;
 
-/**
- * @author lenovo
- */
 @Component
 public class SpringContextUtil implements ApplicationContextAware {
     private static ApplicationContext applicationContext;
-    private static BufferedImage createBufferedImage(int width, int height) throws IOException {
-        // 单色位图
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_BINARY);
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++)
-                bufferedImage.setRGB(i, j, Color.WHITE.getRGB());
-        }
-        return bufferedImage;
-    }
     public static ByteResponse getRequest(List<Dispms> dispms,String styleNumber,Good good){
         List<byte[]> allbyteList = new ArrayList<>();
         byte[] firstByte = new byte[3+6+dispms.size()*12];
@@ -57,18 +35,23 @@ public class SpringContextUtil implements ApplicationContextAware {
             firstByte[j+3] = (byte) styleNumber.charAt(j);
         firstByte[7]  = '\0';
         firstByte[8] = (byte) dispms.size();
-        try {
-            for (i = 0; i < dispms.size(); i++) {
+        for (i = 0; i < dispms.size(); i++) {
+            try {
                 Dispms region = dispms.get(i);
-                if (good != null )
-                    region = getText(region, good);
-                byte[] regionImage = getRegionImage(region, styleNumber);
+                if (good != null)
+                    region = ImageHelper.getText(region, good);
+                System.out.println(region.getColumnType() + " " + region.getX() + " " + region.getY() + " " + region.getWidth() + " " + region.getHeight());
+                ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber);
+                region = byteAndRegion.getRegion();
+                byte[] regionImage = byteAndRegion.getRegionBytes();
+                System.out.println(region.getColumnType() + " " + region.getX() + " " + region.getY() + " " + region.getWidth() + " " + region.getHeight());
                 // 区域编号
                 firstByte[(i * 12) + 9] = (byte) (i + 1);
+                // 颜色
                 firstByte[(i * 12) + 10] = ColorUtil.getColorByte(region.getBackgroundColor(), region.getFontColor());
-                byte[] x,y,height,width;
-                if (getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_42)){
-                    width = int2ByteArr(get8Number(region.getWidth()));
+                byte[] x, y, height, width;
+                if (ImageHelper.getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40)) {
+                    width = int2ByteArr(region.getWidth());
                     height = int2ByteArr(region.getHeight());
                     x = int2ByteArr(region.getX());
                     y = int2ByteArr(region.getY());
@@ -78,10 +61,9 @@ public class SpringContextUtil implements ApplicationContextAware {
                     // y
                     firstByte[(i * 12) + 13] = y[1];
                     firstByte[(i * 12) + 14] = y[0];
-                }
-                else{
+                } else {
                     width = int2ByteArr(region.getWidth());
-                    height = int2ByteArr(get8Number(region.getHeight()));
+                    height = int2ByteArr(region.getHeight());
                     x = int2ByteArr(region.getX());
                     y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber) - region.getY());
                     // x
@@ -104,10 +86,9 @@ public class SpringContextUtil implements ApplicationContextAware {
                 List<byte[]> byteList = getByteList(regionImage, i + 1);
                 allbyteList.addAll(byteList);
             }
-            System.out.println("结束");
-        }
-        catch (Exception e){
-            System.out.println("getRequest:"+e);
+            catch (Exception e){
+                System.out.println("getRequest - " + e);
+            }
         }
         byte[] bytes = allbyteList.get(allbyteList.size() - 1);
         bytes[4] = 0x01;
@@ -127,16 +108,19 @@ public class SpringContextUtil implements ApplicationContextAware {
         for(i = 0;i<dispms.size();i++){
             Dispms region = dispms.get(i);
             if(good!=null)
-                region = getText(region,good);
-            byte[] regionImage = getRegionImage(region,styleNumber);
+                region = ImageHelper.getText(region,good);
+            System.out.println(region.getColumnType()+" " +region.getX() + " "+region.getY()+" "+region.getWidth()+" "+region.getHeight());
+            ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber);
+            region = byteAndRegion.getRegion();
+            byte[] regionImage = byteAndRegion.getRegionBytes();
+            System.out.println(region.getColumnType()+" "+region.getX() + " "+region.getY()+" "+region.getWidth()+" "+region.getHeight());
             // 区域编号
             System.out.println("区域编号"+String.valueOf(regionIdMap.get(region.getSourceColumn())));
             firstByte[(i*12)+9] = Byte.valueOf(String.valueOf(regionIdMap.get(region.getSourceColumn())));
             firstByte[(i*12)+10] =  ColorUtil.getColorByte(region.getBackgroundColor(),region.getFontColor());
             byte[] x,y,height,width;
-            if (getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_42)){
-                width = int2ByteArr(get8Number(region.getWidth()));
-                System.out.println(get8Number(region.getWidth()));
+            if (ImageHelper.getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40)){
+                width = int2ByteArr(region.getWidth());
                 height = int2ByteArr(region.getHeight());
                 x = int2ByteArr(region.getX());
                 y = int2ByteArr(region.getY());
@@ -149,7 +133,7 @@ public class SpringContextUtil implements ApplicationContextAware {
             }
             else{
                 width = int2ByteArr(region.getWidth());
-                height = int2ByteArr(get8Number(region.getHeight()));
+                height = int2ByteArr(region.getHeight());
                 x = int2ByteArr(region.getX());
                 y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber)-region.getY());
                 // x
@@ -180,7 +164,7 @@ public class SpringContextUtil implements ApplicationContextAware {
     public static List<byte[]> getByteList(byte[] regionImage,int number){
         List<byte[]> byteList =  new ArrayList<>();
         int i,j;
-        int packageLength = getPackageLength();
+        int packageLength = Integer.valueOf(SystemVersionArgs.packageLength);
         int len = regionImage.length / packageLength;
         int remainder = regionImage.length % packageLength;
         if(regionImage.length>packageLength){
@@ -248,191 +232,18 @@ public class SpringContextUtil implements ApplicationContextAware {
         }
         return byteList;
     }
-    private static Dispms getText(Dispms dispM,Good good) {
-        if(dispM.getSourceColumn().equalsIgnoreCase("0")) {
-            return dispM;
-        }
-        StringBuilder sqlBuilder = new StringBuilder("select ");
-        sqlBuilder.append(dispM.getSourceColumn()).append(" ");
-        sqlBuilder.append("from ").append(TableConstant.TABLE_GOODS).append(" ");
-        sqlBuilder.append("where id=").append(good.getId());
-        List list = ((GoodService) getBean("GoodService")).findBySql(sqlBuilder.toString());
-        if (list != null && list.size() > 0) {
-            Object obj = list.get(0);
-            if (dispM.getColumnType().contains("数字")) {
-                dispM.setText(String.format("%.2f", new Object[]{
-                        obj
-                }));
-            } else if (dispM.getColumnType().equals("条形码")) {
-                Long barCodeNumber = Long.parseLong(good.getBarCode());
-                dispM.setText(String.valueOf(barCodeNumber));
-            }
-            // 字符串
-            else if(dispM.getColumnType().equals("字符串") || dispM.getColumnType().equals("二维码")){
-                dispM.setText(String.valueOf(obj));
-            }
-        }
-        return dispM;
-    }
-    public static byte[] getRegionImage(Dispms dispM,String styleNumber) {
-        BufferedImage bufferedImage ;
-        int bold = 0;
-        byte result[] = null;
-        int imageWidth,imageHeight;
+    public static ByteAndRegion getRegionImage(Dispms dispM, String styleNumber) {
         try {
-            if (getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_42)){
-                imageWidth = get8Number(dispM.getWidth());
-                imageHeight = dispM.getHeight();
-            }
-            else{
-                imageWidth = dispM.getWidth();
-                imageHeight = get8Number(dispM.getHeight());
-            }
-            bufferedImage = createBufferedImage(imageWidth, imageHeight);
-            Graphics2D g2d = (Graphics2D) bufferedImage.getGraphics();
-            Boolean flag = ColorUtil.isRedAndBlack(dispM.getBackgroundColor(), dispM.getFontColor());
-            // (红黑)
-            if(flag) {
-                g2d.setBackground(ColorUtil.getColorByInt(dispM.getBackgroundColor() == 0 ? 1 : dispM.getBackgroundColor()));
-            }
+            FileUtil.createFileIfNotExist("D:\\styles\\",styleNumber);
+            String columnType = dispM.getColumnType();
+            if(!ImageHelper.getImageType(columnType))
+                return ImageHelper.getImageByType1(dispM,styleNumber);
             else
-                g2d.setBackground(ColorUtil.getColorByInt(dispM.getBackgroundColor()));
-            g2d.clearRect(0, 0, imageWidth, imageHeight);
-            if((dispM.getColumnType().contains("数字") && !dispM.getText().contains(".")) || dispM.getColumnType().contains("字符串")){
-                if (dispM.getFontBold().equals("1"))
-                    bold = 1;
-                Font font = new Font(dispM.getFontFamily(), bold, dispM.getFontSize());
-                g2d.setFont(font);
-                // 字体色
-                if(flag)
-                    g2d.setColor(ColorUtil.getColorByInt(dispM.getFontColor()==0?1:dispM.getFontColor()));
-                else
-                    g2d.setColor(ColorUtil.getColorByInt(dispM.getFontColor()));
-                String s = dispM.getStartText() + dispM.getText() + dispM.getEndText();
-                g2d.drawString(s, 0, get8Number(dispM.getHeight()) );
-            }
-            else if(dispM.getColumnType().contains("数字")  &&  dispM.getText().contains(".")){
-                if (dispM.getFontBold().equals("1"))
-                    bold = 1;
-                Font font = new Font(dispM.getFontFamily(), bold, dispM.getFontSize());
-                g2d.setFont(font);
-                // 字体色
-                if(flag)
-                    g2d.setColor(ColorUtil.getColorByInt(dispM.getFontColor()==0?1:dispM.getFontColor()));
-                else
-                    g2d.setColor(ColorUtil.getColorByInt(dispM.getFontColor()));
-                String s =  dispM.getText();
-                String begin = s.substring(0,s.indexOf(".")+1);
-                String end = s.substring(s.indexOf(".")+1);
-                g2d.drawString(begin, 0, get8Number(dispM.getHeight()) );
-                FontMetrics fontMetrics = g2d.getFontMetrics(font);
-                int strWidth = fontMetrics.stringWidth(begin);
-                font =  new Font(dispM.getFontFamily(), bold, dispM.getFontSize()-5);
-                g2d.setFont(font);
-                g2d.drawString(end, strWidth, get8Number(dispM.getHeight())-5 );
-                if(dispM.getIsLineation()==1)
-                    g2d.drawLine(0,imageHeight/2,imageWidth,imageHeight/2);
-            }
-            else if (dispM.getColumnType().contains("二维码") ) {
-                int value = Math.min(dispM.getWidth(), get8Number(dispM.getHeight()) );
-                BufferedImage img = QRCode.encode(dispM.getText(), value, value);
-                g2d.drawImage(img, 0, 0, null);
-                ImageIO.write(img, "BMP", new File("D:\\"+dispM.getId()+dispM.getColumnType()+"二维码"+".bmp"));
-            } else if (dispM.getColumnType().contains("条形码") ) {
-                BufferedImage img = BarCode.encode(dispM.getText(), dispM.getWidth(), get8Number(dispM.getHeight()) );
-                g2d.drawImage(img, 0, 0, null);
-                ImageIO.write(img, "BMP", new File("D:\\"+dispM.getId()+dispM.getColumnType()+"条形码"+".bmp"));
-            }
-            else if(dispM.getColumnType().contains("线段") ) {
-                g2d.drawLine(0,imageHeight,imageWidth,imageHeight);
-            }
-            ImageIO.write(bufferedImage, "BMP", new File("D:\\"+dispM.getId()+dispM.getColumnType()+".bmp"));
-            result = changeImage(bufferedImage,styleNumber);
+                return ImageHelper.getImageByType2(dispM,styleNumber);
         } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println(e);
         }
-        return result;
-    }
-    public static byte[] changeImage(BufferedImage bimg,String styleNumber) {
-        // 212 104   296 128
-        // 400 300
-        int[][] data = new int[bimg.getWidth()][bimg.getHeight()];
-        byte result[] = new byte[bimg.getWidth() * bimg.getHeight() / 8];
-        int sum = 0;
-        System.out.println(styleNumber);
-        if (getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_42)) {
-            for (int i = 0; i < bimg.getHeight(); i++) {
-                int time = 0;
-                StringBuffer byteString = new StringBuffer();
-                for (int j = 0; j < bimg.getWidth(); j++) {
-                    data[j][i] = bimg.getRGB(j, i);
-                    if (data[j][i] == -1 && time < 8) {
-                        byteString.append("1");
-                        time++;
-                    } else if (data[j][i] == -16777216 && time < 8) {
-                        byteString.append("0");
-                        time++;
-                    } else if (time == 8) {
-                        byte b = (byte) Integer.parseInt(byteString.toString(), 2);
-                        result[sum++] = b;
-                        time = 0;
-                        byteString = new StringBuffer();
-                        j--;
-                    }
-                    if(j==bimg.getWidth()-1) {
-                        byte b = (byte) Integer.parseInt(byteString.toString(),2);
-                        result[sum++]=b;
-                    }
-                }
-            }
-        } else {
-            for (int i = 0; i < bimg.getWidth(); i++) {
-                int time = 0;
-                StringBuffer byteString = new StringBuffer();
-                //-16777216 -1
-                for (int j = bimg.getHeight() - 1; j >= 0; j--) {
-                    data[i][j] = bimg.getRGB(i, j);
-                    if (data[i][j] == -1 && time < 8) {
-                        byteString.append("1");
-                        time++;
-                    } else if (data[i][j] == -16777216 && time < 8) {
-                        byteString.append("0");
-                        time++;
-                    } else if (time == 8) {
-                        byte b = (byte) Integer.parseInt(byteString.toString(), 2);
-                        result[sum++] = b;
-                        time = 0;
-                        byteString = new StringBuffer();
-                        j++;
-                    }
-                    if (j == 0) {
-                        byte b = (byte) Integer.parseInt(byteString.toString(), 2);
-                        result[sum++] = b;
-                    }
-                }
-            }
-        }
-        System.out.println("全部区域数据开始");
-        for (int i = 0; i < result.length; i++) {
-            byte b = result[i];
-            System.out.print (toHex(b)+"    ");
-            if(i%12==0 && i!=0)
-                System.out.println();
-        }
-        System.out.println();
-        System.out.println("全部区域数据结束");
-        return result;
-    }
-    public static Integer getTypeByStyleNumber(String styleNumber){
-        if(styleNumber.substring(0,2).equals("13") )
-            return StyleType.StyleType_13;
-        else if(styleNumber.substring(0,2).equals("21") )
-            return StyleType.StyleType_21;
-        else if(styleNumber.substring(0,2).equals("29") )
-            return StyleType.StyleType_29;
-        else if(styleNumber.substring(0,2).equals("42") )
-            return StyleType.StyleType_42;
-        return 0;
+        return null;
     }
     // 把byte 转化为两位十六进制数
     public static String toHex(byte b) {
@@ -441,12 +252,6 @@ public class SpringContextUtil implements ApplicationContextAware {
             result = '0' + result;
         }
         return result;
-    }
-    // 将数字转换为8的整数倍
-    public static int get8Number(int a){
-        // 47  57  29
-        int remainder =  a % 8;
-        return a+(8-remainder);
     }
     // 将数字转为数组
     public static byte[] int2ByteArr(int i,int n){
@@ -621,7 +426,6 @@ public class SpringContextUtil implements ApplicationContextAware {
     public static Channel getChannelByRouter(Long routerId){
         RouterService routerService = (RouterService) getBean("RouterService");
         Router router= routerService.findById(routerId).get();
-        //InetSocketAddress tagAddress = new InetSocketAddress(router.getIp(), router.getPort());
         Channel channel = getChannelIdGroup().get(router.getBarCode());
         return channel;
     }
@@ -672,14 +476,26 @@ public class SpringContextUtil implements ApplicationContextAware {
         }
         return 0;
     }
-    public static ChannelGroup channelGroup;
+    public static BufferedImage createBufferedImage(int width, int height) throws IOException {
+        // 单色位图
+        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_BINARY);
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++)
+                bufferedImage.setRGB(i, j, Color.WHITE.getRGB());
+        }
+        return bufferedImage;
+    }
+    public static BufferedImage createBackgroundImage(int width, int height) throws IOException {
+        // 单色位图
+        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_BINARY);
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++)
+                bufferedImage.setRGB(i, j, Color.BLACK.getRGB());
+        }
+        return bufferedImage;
+    }
     public static Map<String, Channel> channelIdGroup = new HashMap();
     public static ServerChannelHandler serverChannelHandler;
-    private static String commandTime = "4";
-    private static Long aliveTime = (long) 6000;
-    private static int repeatTime = 3;
-    private static Tag currentTag ;
-    private static Integer PackageLength = 220;
     private static ArrayList<Channel> workingChannel = new ArrayList<>();
     public static ArrayList<Channel> getWorkingChannel() {
         return workingChannel;
@@ -691,64 +507,12 @@ public class SpringContextUtil implements ApplicationContextAware {
         workingChannel.remove(channel);
     }
     public static boolean isWorking(Channel channel){
-        // System.out.println("路由器是否工作："+workingChannel.contains(channel));
         return workingChannel.contains(channel);
     }
-    public static int getRepeatTime() {
-        return repeatTime;
-    }
 
-    public static void setRepeatTime(int repeatTime) {
-        SpringContextUtil.repeatTime = repeatTime;
-    }
 
-    public static String getCommandTime() {
-        return commandTime;
-    }
-
-    public static void setCommandTime(String commandTime) {
-        SpringContextUtil.commandTime = commandTime;
-    }
-
-    public static Long getAliveTime() {
-        return aliveTime;
-    }
-
-    public static void setAliveTime(Long aliveTime) {
-        SpringContextUtil.aliveTime = aliveTime;
-    }
-
-    public static Tag getCurrentTag() {
-        return currentTag;
-    }
-
-    public static void setCurrentTag(Tag currentTag) {
-        SpringContextUtil.currentTag = currentTag;
-    }
-    public static Integer getPackageLength(){
-        return PackageLength;
-    }
-    public static void setPackageLength(Integer PackageLength){
-        SpringContextUtil.PackageLength = PackageLength;
-    }
     public static Map<String, Channel> getChannelIdGroup() {
         return channelIdGroup;
-    }
-
-    public static void setChannelIdGroup(Map<String, Channel> channelIdGroup) {
-        SpringContextUtil.channelIdGroup = channelIdGroup;
-    }
-
-
-    public static ChannelGroup getChannelGroup() {
-        return channelGroup;
-    }
-
-    public static void setChannelGroup(ChannelGroup channelGroup) {
-        SpringContextUtil.channelGroup = channelGroup;
-    }
-    static {
-        channelGroup = new DefaultChannelGroup("NettyServer", GlobalEventExecutor.INSTANCE);
     }
 
     @Override

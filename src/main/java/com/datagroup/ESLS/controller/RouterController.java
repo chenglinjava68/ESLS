@@ -1,60 +1,86 @@
 package com.datagroup.ESLS.controller;
 
-        import com.datagroup.ESLS.aop.Log;
-        import com.datagroup.ESLS.common.constant.TableConstant;
-        import com.datagroup.ESLS.common.request.RequestBean;
-        import com.datagroup.ESLS.common.response.ResponseBean;
-        import com.datagroup.ESLS.common.response.ResultBean;
-        import com.datagroup.ESLS.dto.RouterVo;
-        import com.datagroup.ESLS.entity.Router;
-        import com.datagroup.ESLS.entity.Shop;
-        import com.datagroup.ESLS.service.RouterService;
-        import com.datagroup.ESLS.service.TagService;
-        import com.datagroup.ESLS.utils.CopyUtil;
-        import io.swagger.annotations.*;
-        import org.springframework.beans.BeanUtils;
-        import org.springframework.beans.factory.annotation.Autowired;
-        import org.springframework.http.HttpStatus;
-        import org.springframework.http.ResponseEntity;
-        import org.springframework.web.bind.annotation.*;
-
-        import javax.validation.constraints.Min;
-        import java.util.ArrayList;
-        import java.util.List;
-        import java.util.Optional;
+import com.datagroup.ESLS.aop.Log;
+import com.datagroup.ESLS.common.constant.TableConstant;
+import com.datagroup.ESLS.common.request.RequestBean;
+import com.datagroup.ESLS.common.response.ResponseBean;
+import com.datagroup.ESLS.common.response.ResultBean;
+import com.datagroup.ESLS.dto.RouterVo;
+import com.datagroup.ESLS.entity.Router;
+import com.datagroup.ESLS.entity.Shop;
+import com.datagroup.ESLS.service.RouterService;
+import com.datagroup.ESLS.utils.ConditionUtil;
+import com.datagroup.ESLS.utils.CopyUtil;
+import io.swagger.annotations.*;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import javax.validation.constraints.Min;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 @RestController
 @Api(description = "路由器管理API")
 @CrossOrigin(origins = "*", maxAge = 3600)
+@Validated
 public class RouterController {
 
     @Autowired
     private RouterService routerService;
-    @Autowired
-    private TagService tagService;
 
     @ApiOperation(value = "根据条件获取路由器信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = "查询条件 可为所有字段", dataType = "String", paramType = "query"),
             @ApiImplicitParam(name = "queryString", value = "查询条件的字符串", dataType = "String", paramType = "query"),
-            @ApiImplicitParam(name = "page", value = "页码", required = true, dataType = "int", paramType = "query"),
-            @ApiImplicitParam(name = "count", value = "数量", required = true, dataType = "int", paramType = "query")
+            @ApiImplicitParam(name = "page", value = "页码", dataType = "int", paramType = "query"),
+            @ApiImplicitParam(name = "count", value = "数量", dataType = "int", paramType = "query")
     })
     @GetMapping("/routers")
     @Log("获取路由器信息")
-    public ResponseEntity<ResultBean> getRouter(@RequestParam(required = false) String query, @RequestParam(required = false) String queryString, @Min(message = "data.page.min", value = 0)@RequestParam Integer page, @Min(message = "data.count.min", value = 0)@RequestParam Integer count) {
-        if(query!=null && queryString!=null) {
-            List<Router> list = routerService.findAllBySql(TableConstant.TABLE_ROUTERS, query, queryString, page, count,Router.class);
-            return new ResponseEntity<>(new ResultBean(CopyUtil.copyRouter(list),list.size()), HttpStatus.OK);
+    @RequiresPermissions("系统菜单")
+    public ResponseEntity<ResultBean> getRouter(@RequestParam(required = false) String query, @RequestParam(required = false) String queryString, @Min(message = "data.page.min", value = 0)@RequestParam(required = false) Integer page, @Min(message = "data.count.min", value = 0)@RequestParam(required = false)  Integer count) {
+        String result = ConditionUtil.judgeArgument(query, queryString, page, count);
+        if(result==null)
+            return new ResponseEntity<>(ResultBean.error("参数组合有误 [query和queryString必须同时提供] [page和count必须同时提供]"), HttpStatus.BAD_REQUEST);
+        // 带条件或查询
+        if(query!=null && query.contains(" ")){
+            List content = routerService.findAllBySql(TableConstant.TABLE_ROUTERS, "like", query, queryString, page, count, Router.class);
+            return new ResponseEntity<>(new ResultBean(content, content.size()), HttpStatus.OK);
         }
-        List<Router> list = routerService.findAll();
-        List<Router> content = routerService.findAll(page,count);
-        return new ResponseEntity<>(new ResultBean(CopyUtil.copyRouter(content),list.size()),HttpStatus.OK);
+        // 查询全部
+        if(result.equals(ConditionUtil.QUERY_ALL)) {
+            List list = routerService.findAll();
+            return new ResponseEntity<>(new ResultBean(list, list.size()), HttpStatus.OK);
+        }
+        // 查询全部分页
+        if(result.equals(ConditionUtil.QUERY_ALL_PAGE)){
+            List list = routerService.findAll();
+            List content = routerService.findAll(page, count);
+            return new ResponseEntity<>(new ResultBean(content, list.size()), HttpStatus.OK);
+        }
+        // 带条件查询全部
+        if(result.equals(ConditionUtil.QUERY_ATTRIBUTE_ALL)) {
+            List content = routerService.findAllBySql(TableConstant.TABLE_ROUTERS, query, queryString,Router.class);
+            return new ResponseEntity<>(new ResultBean(content, content.size()), HttpStatus.OK);
+        }
+        // 带条件查询分页
+        if(result.equals(ConditionUtil.QUERY_ATTRIBUTE_PAGE)) {
+            List list = routerService.findAll();
+            List content = routerService.findAllBySql(TableConstant.TABLE_ROUTERS, query, queryString, page, count,Router.class);
+            return new ResponseEntity<>(new ResultBean(content, list.size()), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.BAD_REQUEST);
     }
 
     @ApiOperation(value = "获取指定ID的路由器信息")
     @GetMapping("/router/{id}")
     @Log("获取指定ID的路由器信息")
+    @RequiresPermissions("获取指定ID的信息")
     public ResponseEntity<ResultBean> getRouterById(@PathVariable Long id) {
         Optional<Router> result = routerService.findById(id);
         if(result.isPresent()) {
@@ -68,6 +94,7 @@ public class RouterController {
     @ApiOperation(value = "添加或修改路由器信息(路由器设置)")
     @PostMapping("/router")
     @Log("添加或修改路由器信息")
+    @RequiresPermissions("添加或修改信息")
     public ResponseEntity<ResultBean> saveRouter(@RequestBody @ApiParam(value = "路由器信息json格式") RouterVo routerVo) {
         Router router = new Router();
         BeanUtils.copyProperties(routerVo,router);
@@ -83,6 +110,7 @@ public class RouterController {
     @ApiOperation(value = "根据ID删除路由器信息")
     @DeleteMapping("/router/{id}")
     @Log("根据ID删除路由器信息")
+    @RequiresPermissions("删除指定ID的信息")
     public ResponseEntity<ResultBean> deleteRouterById(@PathVariable Long id) {
         boolean flag = routerService.deleteById(id);
         if(flag)
@@ -92,6 +120,7 @@ public class RouterController {
     @ApiOperation("根据多个字段搜索数据")
     @PostMapping("/routers/search")
     @Log("根据多个字段搜索数据")
+    @RequiresPermissions("查询和搜索功能")
     public ResponseEntity<ResultBean> searchRoutersByConditon(@RequestParam String connection,@Min(message = "data.page.min", value = 0)@RequestParam Integer page,@RequestParam @Min(message = "data.count.min", value = 0)Integer count,@RequestBody @ApiParam(value = "查询条件json格式") RequestBean requestBean){
         List<Router> routerList = routerService.findAllBySql(TableConstant.TABLE_ROUTERS, connection, requestBean, page, count, Router.class);
         return new ResponseEntity<>(new ResultBean(CopyUtil.copyRouter(routerList)), HttpStatus.OK);
@@ -108,10 +137,17 @@ public class RouterController {
             return new ResponseEntity<>(ResultBean.error("执行出错"),HttpStatus.BAD_REQUEST);
     }
     // 路由器巡检（查询路由器信息）
-    @ApiOperation("路由器巡检")
+    @ApiOperation(value = "路由器巡检",notes = "定期巡检才需加cron表达式")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "mode", value = " 0为指定路由器巡检 1定期巡检", dataType = "int", paramType = "query")
+    })
     @PutMapping("/router/scan")
-    public ResponseEntity<ResultBean> routerScan(@RequestBody @ApiParam("路由器信息集合") RequestBean requestBean) {
-        ResponseBean responseBean = routerService.routerScan(requestBean);
+    public ResponseEntity<ResultBean> routerScan(@RequestBody @ApiParam("路由器信息集合") RequestBean requestBean,@RequestParam Integer mode) {
+        ResponseBean responseBean;
+        if(mode == 0)
+            responseBean = routerService.routerScan(requestBean);
+        else
+            responseBean = routerService.routerScanByCycle(requestBean);
         return new ResponseEntity<>(ResultBean.success(responseBean),HttpStatus.OK);
     }
     // 路由器设置

@@ -31,7 +31,6 @@ public class ServerChannelHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         log.info("服务端客户加入连接====>" + ctx.channel().toString());
-        SpringContextUtil.getChannelGroup().add(ctx.channel());
         InetSocketAddress socketAddress = (InetSocketAddress) ctx.channel().remoteAddress();
         // 根据IP查询路由器信息
         Router router = ((RouterService) SpringContextUtil.getBean("RouterService")).findByIp(socketAddress.getAddress().getHostAddress());

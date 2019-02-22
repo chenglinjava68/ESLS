@@ -3,6 +3,7 @@ package com.datagroup.ESLS.aop;
 import com.alibaba.fastjson.JSON;
 import com.datagroup.ESLS.dao.LogDao;
 import com.datagroup.ESLS.entity.Logs;
+import com.datagroup.ESLS.entity.User;
 import com.datagroup.ESLS.redis.RedisUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.JoinPoint;
@@ -44,8 +45,13 @@ public class WebLogAcpect {
         startTime.set(System.currentTimeMillis());
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         HttpServletRequest request = attributes.getRequest();
-        //  Admin admin = (Admin)redisUtil.sentinelGet(request.getHeader("X-ESLS-TOKEN"), Admin.class);
-        // logs.setUsername( admin.getUsername());
+        String token = request.getHeader("X-ESLS-TOKEN");
+        if(token==null)
+            logs.setUsername("未登录或未授权用户");
+        else {
+            User admin = (User) redisUtil.sentinelGet(request.getHeader("X-ESLS-TOKEN"), User.class);
+            logs.setUsername(admin.getName() == null ? "token过期或无效" : admin.getName());
+        }
         StringBuffer requestLog = new StringBuffer();
         String str;
         requestLog.append("请求信息：")
@@ -92,7 +98,7 @@ public class WebLogAcpect {
         // 处理完请求，返回内容
         WebLogAcpect.log.info("响应结果: " + ret);
         WebLogAcpect.log.info("执行时间 : " + (System.currentTimeMillis() - startTime.get()));
-        logs.setRunnintTime(String.valueOf(System.currentTimeMillis() - startTime.get()));
+        logs.setRunningTime(String.valueOf(System.currentTimeMillis() - startTime.get()));
         Logs save = logDao.save(logs);
         if (save != null)
             log.info("日志记录成功！");

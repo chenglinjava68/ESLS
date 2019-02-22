@@ -1,3 +1,10 @@
+cos:
+ secretId: AKIDzyqbM3y9RXTI0bsNWZR8f4HJD6pPq9HE
+ secretKey: vmS1fEcqunY8ZsBKJ7nQxKWXQOScp2BH
+ region: ap-guangzhou
+ bucketName: mybucket1-1257353650
+ path: https://mybucket1-1257353650.cos.ap-guangzhou.myqcloud.com
+
 acme:
   command:
     # 路由器注册

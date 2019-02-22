@@ -18,10 +18,11 @@ public class DispmsVo {
     private String text;
     private String startText;
     private String endText;
-    private String fontBold;
+    private String fontType;
     private String fontFamily;
     private Integer fontColor;
     private Integer fontSize;
     // status代表是否要显示
     private Byte status;
+    private Byte isLineation;
 }

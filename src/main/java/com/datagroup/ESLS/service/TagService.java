@@ -29,19 +29,19 @@ public interface TagService extends Service{
     ResponseBean flushTags(RequestBean requestBean);
     // 对路由器下的标签进行批量刷新
     ResponseBean flushTagsByRouter(RequestBean requestBean);
-    ResponseBean flushTagsByCycle(RequestBean requestBean);
+    ResponseBean flushTagsByCycle(RequestBean requestBean,Integer mode);
     // 对标签进行批量巡检
     ResponseBean scanTags(RequestBean requestBean);
     // 对路由器下的标签进行批量巡检
     ResponseBean scanTagsByRouter(RequestBean requestBean);
-    ResponseBean scanTagsByCycle(RequestBean requestBean);
+    ResponseBean scanTagsByCycle(RequestBean requestBean,Integer mode);
     // 禁用或启用指定标签
     ResponseBean changeStatus(RequestBean requestBean,Integer mode);
     // 闪灯或结束闪灯
     ResponseBean changeLightStatus(RequestBean requestBean,Integer mode);
     ResponseBean changeLightStatusByRouter(RequestBean requestBean,Integer mode);
     // 更新指定路由器下的所有样式
-    ResponseBean updateTagStyle(Tag tag);
+    ResponseBean updateTagStyle(Tag tag, List<Dispms> dispmses);
     // 对指定的标签或路由器发出标签移除命令
     ResponseBean removeTagCommand(RequestBean requestBean,Integer mode);
     // 绑定和解绑商品和标签

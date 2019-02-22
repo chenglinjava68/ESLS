@@ -16,7 +16,7 @@ public enum ResultEnum {
     USER_LOCKED(24,"账号锁定"),
 
     ORDER_NOT_EXIST(30,"用户未授权"),
-    ORDERDETAIL_NOT_EXIST(13,"订单详情不存在"),
+    GOOD_TAG_BIND_ERROR(40,"商品标签绑定失败"),
     ORDER_STATUS_ERROR(14,"订单状态不正确"),
     ORDER_UPDATE_FAIL(15,"订单更新失败"),
     ORDER_DETAIL_EMPTY(16,"订单详情为空"),

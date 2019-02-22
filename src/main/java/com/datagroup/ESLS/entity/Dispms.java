@@ -43,8 +43,8 @@ public class Dispms implements Serializable {
     private String startText;
     @Column(name = "endText")
     private String endText;
-    @Column(name = "fontBold")
-    private String fontBold;
+    @Column(name = "fontType")
+    private String fontType;
     @Column(name = "fontFamily")
     private String fontFamily;
     @Column(name = "fontSize")
@@ -53,8 +53,10 @@ public class Dispms implements Serializable {
     private Integer fontColor;
     @Column(name = "status")
     private Byte status;
-    @Column(name = "isLineation")
-    private Byte isLineation;
+    @Column(name = "imageUrl")
+    private String imageUrl;
+    @Column(name = "backup")
+    private String backup;
     @ManyToOne
     @JoinColumn(name = "styleid", referencedColumnName = "id")
     @JsonIgnore

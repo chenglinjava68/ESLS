@@ -19,5 +19,6 @@ public interface RouterService extends Service{
     ResponseBean changeRouter(String sourceQuery,String sourceQueryString,String targetQuery, String targetQueryString);
     // 对路由器进行巡检
     ResponseBean routerScan(RequestBean requestBean);
+    ResponseBean routerScanByCycle(RequestBean requestBean);
     ResponseBean settingRouter(RequestBean requestBean);
 }

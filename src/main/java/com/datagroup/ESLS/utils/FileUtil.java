@@ -1,7 +1,8 @@
 package com.datagroup.ESLS.utils;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.*;
 
 public class FileUtil {
     // 存储文件
@@ -30,8 +31,25 @@ public class FileUtil {
     // 判断文件是否存在
     public static boolean judeFileExists(String filePath, String fileName) {
         File file = new File(filePath + fileName);
-        if (file.exists())
+        if (file.exists()) {
             return true;
+        }
         return false;
+    }
+    public static boolean createFileIfNotExist(String filePath, String fileName){
+        File file = new File(filePath + fileName);
+        if (file.exists()) {
+            return true;
+        }
+        else{
+            file.mkdirs();
+        }
+        return false;
+    }
+    public static File multipartFileToFile(MultipartFile multipartFile) throws IOException {
+        File localFile;
+        localFile = File.createTempFile("temp",null);
+        multipartFile.transferTo(localFile);
+        return localFile;
     }
 }

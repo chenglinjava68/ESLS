@@ -58,7 +58,7 @@ public class TagController {
     public ResponseEntity<ResultBean> getTags(@RequestParam(required = false) String query, @RequestParam(required = false) String queryString, @Min(message = "data.page.min", value = 0)@RequestParam(required = false) Integer page, @Min(message = "data.count.min", value = 0) @RequestParam(required = false) Integer count) {
         String result = ConditionUtil.judgeArgument(query, queryString, page, count);
         if(result==null)
-            return new ResponseEntity<>(ResultBean.error("参数组合有误 [query和queryString必须同时提供] [page和count必须同时提供]"), HttpStatus.OK);
+            return new ResponseEntity<>(ResultBean.error("参数组合有误 [query和queryString必须同时提供] [page和count必须同时提供]"), HttpStatus.BAD_REQUEST);
         // 带条件或查询
         if(query!=null && query.contains(" ")){
             List content = tagService.findAllBySql(TableConstant.TABLE_TAGS, "like", query, queryString, page, count, Tag.class);
@@ -91,13 +91,13 @@ public class TagController {
             List<TagVo> resultList = CopyUtil.copyTag(content);
             return new ResponseEntity<>(new ResultBean(resultList, list.size()), HttpStatus.OK);
         }
-        return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.OK);
+        return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.BAD_REQUEST);
     }
 
     @ApiOperation(value = "获取指定ID的标签信息")
     @GetMapping("/tag/{id}")
     @Log("获取指定ID的标签信息")
-    @RequiresPermissions("新闻资讯")
+    @RequiresPermissions("获取指定ID的信息")
     public ResponseEntity<ResultBean> getTagById(@PathVariable Long id) {
         Optional<Tag> result = tagService.findById(id);
         if (result.isPresent()) {
@@ -112,6 +112,7 @@ public class TagController {
     @ApiOperation(value = "添加或修改标签信息")
     @PostMapping("/tag")
     @Log("添加或修改标签信息")
+    @RequiresPermissions("添加或修改信息")
     public ResponseEntity<ResultBean> saveTag(@RequestBody @ApiParam(value = "标签信息json格式") TagVo tagVo) {
         Tag tag = new Tag();
         BeanUtils.copyProperties(tagVo, tag);
@@ -139,7 +140,7 @@ public class TagController {
     @ApiOperation(value = "根据ID删除标签信息")
     @DeleteMapping("/tag/{id}")
     @Log("根据ID删除标签信息")
-    @RequiresRoles("总经理")
+    @RequiresPermissions("删除指定ID的信息")
     public ResponseEntity<ResultBean> deleteTagById(@PathVariable Long id) {
         boolean flag = tagService.deleteById(id);
         if (flag)
@@ -149,6 +150,7 @@ public class TagController {
     @ApiOperation("根据多个字段搜索数据")
     @PostMapping("/tags/search")
     @Log("根据多个字段搜索数据")
+    @RequiresPermissions("查询和搜索功能")
     public ResponseEntity<ResultBean> searchTagsByConditon(@RequestParam String connection,@Min(message = "data.page.min", value = 0)@RequestParam Integer page,@RequestParam @Min(message = "data.count.min", value = 0)Integer count,@RequestBody @ApiParam(value = "查询条件json格式") RequestBean requestBean){
         List<Tag> tags = tagService.findAllBySql(TableConstant.TABLE_TAGS, connection, requestBean, page, count, Tag.class);
         return new ResponseEntity<>(new ResultBean(CopyUtil.copyTag(tags)), HttpStatus.OK);
@@ -196,7 +198,7 @@ public class TagController {
             return new ResponseEntity<>(ResultBean.success(responseBean), HttpStatus.OK);
         }
         else if(mode.equals(ModeConstant.DO_BY_TAG_CYCLE) || mode.equals(ModeConstant.DO_BY_ROUTER_CYCLE)){
-            ResponseBean responseBean = tagService.flushTagsByCycle(requestBean);
+            ResponseBean responseBean = tagService.flushTagsByCycle(requestBean,mode);
             return new ResponseEntity<>(ResultBean.success(responseBean), HttpStatus.OK);
         }
         else
@@ -209,18 +211,18 @@ public class TagController {
     @PutMapping("/tag/scan")
     @Log("对标签进行巡检")
     public ResponseEntity<ResultBean> tagScan(@RequestBody @ApiParam("标签或路由器信息集合") RequestBean requestBean,@RequestParam Integer mode) {
-        // 对指定的标签刷新
+        // 对指定的标签巡检
         if(mode.equals(ModeConstant.DO_BY_TAG)) {
             ResponseBean responseBean = tagService.scanTags(requestBean);
             return new ResponseEntity<>(ResultBean.success(responseBean), HttpStatus.OK);
         }
-        // 对路由器下的所有标签刷新
+        // 对路由器下的所有标签巡检
         else if(mode.equals(ModeConstant.DO_BY_ROUTER)){
             ResponseBean responseBean = tagService.scanTagsByRouter(requestBean);
             return new ResponseEntity<>(ResultBean.success(responseBean), HttpStatus.OK);
         }
         else if(mode.equals(ModeConstant.DO_BY_TAG_CYCLE) || mode.equals(ModeConstant.DO_BY_ROUTER_CYCLE)){
-            ResponseBean responseBean = tagService.scanTagsByCycle(requestBean);
+            ResponseBean responseBean = tagService.scanTagsByCycle(requestBean,mode);
             return new ResponseEntity<>(ResultBean.success(responseBean), HttpStatus.OK);
         }
         else
@@ -231,6 +233,7 @@ public class TagController {
             @ApiImplicitParam(name = "mode", value = " 0禁用 1启用", dataType = "int", paramType = "query")
     })
     @PutMapping("/tag/status")
+    @RequiresPermissions("切换状态")
     public ResponseEntity<ResultBean> changeStatus(@RequestBody @ApiParam("标签或路由器信息集合") RequestBean requestBean,@RequestParam  @Min(message = "data.page.min", value = 0)  @Max(message = "data.mode.max", value = 1) Integer mode){
         return new  ResponseEntity<>(new ResultBean(tagService.changeStatus(requestBean,mode)),HttpStatus.OK);
     }
@@ -238,7 +241,7 @@ public class TagController {
     @GetMapping("/tags/overtime")
     public ResponseEntity<ResultBean> getOverTimeTags(){
         List<Tag> tagList = tagService.findBySql("SELECT * FROM tags WHERE  execTime IS NULL OR  execTime = 0",Tag.class);
-        ResponseEntity<ResultBean> result = null;
+        ResponseEntity<ResultBean> result;
         if ((result = ResponseUtil.testListSize("没有相应的标签或商品 请重新选择", tagList)) != null) return result;
         List<TagVo> tagVos = CopyUtil.copyTag(tagList);
         return new  ResponseEntity<>(new ResultBean(tagVos),HttpStatus.OK);

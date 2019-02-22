@@ -11,4 +11,5 @@ public interface DispmsService extends Service{
     Dispms saveOne(Dispms dispms);
     Optional<Dispms> findById(Long id);
     boolean deleteById(Long id);
+    Dispms findByStyleIdAndColumnTypeAndSourceColumn(Long styleId, String columnType,String sourceColumn);
 }

@@ -19,7 +19,7 @@ public class BarCode
 
     public static BufferedImage encode(String contents, int width, int height)
     {
-        int codeWidth = 98;
+        int codeWidth = 104;
         try
         {
             codeWidth = Math.max(codeWidth, width);

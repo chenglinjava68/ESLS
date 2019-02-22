@@ -1,28 +1,40 @@
 package com.datagroup.ESLS;
 
 import com.datagroup.ESLS.common.constant.SqlConstant;
+import com.datagroup.ESLS.dto.ByteAndRegion;
 import com.datagroup.ESLS.entity.*;
 import com.datagroup.ESLS.netty.command.CommandCategory;
 import com.datagroup.ESLS.netty.command.ProtocolConstant;
 import com.datagroup.ESLS.dao.*;
 import com.datagroup.ESLS.netty.executor.AsyncTask;
 import com.datagroup.ESLS.redis.RedisConstant;
+import com.datagroup.ESLS.service.DispmsService;
 import com.datagroup.ESLS.service.RouterService;
-import com.datagroup.ESLS.service.TagAndGoodService;
+import com.datagroup.ESLS.service.StyleService;
 import com.datagroup.ESLS.service.UserService;
 import com.datagroup.ESLS.utils.CopyUtil;
+import com.datagroup.ESLS.utils.ImageHelper;
 import com.datagroup.ESLS.utils.SpringContextUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
+import sun.font.FontDesignMetrics;
 
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.Collection;
-import java.util.Iterator;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.*;
 import java.util.List;
-import java.util.Map;
 
 
 @RunWith(SpringRunner.class)
@@ -32,12 +44,6 @@ public class ESLSApplicationTests {
     private TagDao tagsDao;
     @Autowired
     private GoodDao goodDao;
-    @Autowired
-    private TagAndGoodDao tagAndGoodDao;
-    @Autowired
-    private PhotoDao photoDao;
-    @Autowired
-    private TagAndGoodService tagAndGoodService;
     @Autowired
     private AsyncTask asyncTask;
     @Autowired
@@ -49,30 +55,44 @@ public class ESLSApplicationTests {
     private BaseDao baseDao;
     @Autowired
     private UserService userService;
+    @Autowired
+    private DispmsService dispmsService;
+    @Autowired
+    private StyleService styleService;
     @Test
-    public void displayStyle() {
-
-    }
-
-    @Test
-    public void testAsync() {
-        // asyncTask.executeRequest("handler22");
+    public void testAsync() throws IOException, URISyntaxException {
+        Font font = new Font("微软雅黑", Font.BOLD, 32);
+        String content = "0";
+        FontDesignMetrics metrics = FontDesignMetrics.getMetrics(font);
+        System.out.println(metrics.stringWidth(content));
+        System.out.println(metrics.getWidths()[0]);
+        System.out.println(metrics.getHeight());
+        BufferedImage bufferedImage = new BufferedImage(metrics.stringWidth(content), metrics.getHeight(),12);
+        Graphics2D graphics = bufferedImage.createGraphics();
+//        graphics.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+//        graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER));
+        graphics.setColor(Color.BLACK);
+        graphics.fillRect(0, 0, bufferedImage.getWidth(), bufferedImage.getHeight());
+        graphics.setFont(font);
+        graphics.setColor(Color.WHITE);
+        graphics.drawLine(0,metrics.getHeight()/2,metrics.stringWidth(content),metrics.getHeight()/2);
+        // graphics.drawString(content, 0, metrics.getAscent());//图片上写文字
+        graphics.drawString(content, 0, metrics.getHeight());//图片上写文字
+        System.out.println(metrics.getHeight() + "  " + metrics.getAscent());
+        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\5"+".bmp"));
+        graphics.dispose();
     }
 
     @Test
     public void testRedisKeys() {
-        redisConstant.getExpiresMap().forEach((key, value) -> {
-            System.out.println(key + " " + value);
-        });
+        Collection<Dispms> dispmses = styleService.findById((long) 17).get().getDispmses();
+        for(Dispms region: dispmses) {
+            SpringContextUtil.getRegionImage(region, "2901");
+        }
     }
 
     @Test
-    public void testNettyClient() {
-        byte[] message = new byte[2];
-        message[0] = 0x02;
-        message[1] = 0x03;
-        InetSocketAddress target = new InetSocketAddress("localhost", 9001);
-        // System.out.println("执行结果："+NettyClient.startAndWrite(target,message));
+    public void testNettyClient() throws IOException {
     }
 
     @Test

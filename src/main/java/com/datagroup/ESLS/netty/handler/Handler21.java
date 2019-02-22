@@ -70,6 +70,8 @@ public class Handler21 implements ServiceHandler{
             tag.setForbidState(1);
             // 没有绑定
             tag.setState((byte) 0);
+            // 已经工作
+            tag.setIsWorking((byte) 1);
             tag.setScreenType(screenType);
             tag.setResolutionWidth(resolutionWidth);
             tag.setResolutionHeight(resolutionHeight);

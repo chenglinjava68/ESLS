@@ -55,10 +55,8 @@ public class GoodsReaderConfigruation {
     @StepScope
     public FlatFileItemReader<Good> goodsReader() {
         FlatFileItemReader<Good> reader=new FlatFileItemReader<Good>();
-      // reader.setResource(new ClassPathResource("/data/goods.csv"));
         reader.setResource(new FileSystemResource(new File(FILE_PATH+"goods.csv")));
         DelimitedLineTokenizer tokenizer=new DelimitedLineTokenizer();
-
         tokenizer.setNames(
                 new String[]
                 {"barCode","name","price","promotePrice","promotionReason","unit","origin","spec","category","shelfNumber","rfus01","rfus02","qrCode","provider",}

@@ -1,16 +1,22 @@
 package com.datagroup.ESLS.serviceImpl;
 
+import com.datagroup.ESLS.common.constant.ModeConstant;
 import com.datagroup.ESLS.common.constant.TableConstant;
 import com.datagroup.ESLS.common.request.RequestBean;
 import com.datagroup.ESLS.common.request.RequestItem;
 import com.datagroup.ESLS.common.response.ResponseBean;
+import com.datagroup.ESLS.cycleJob.DynamicTask;
+import com.datagroup.ESLS.dao.CycleJobDao;
 import com.datagroup.ESLS.dao.RouterDao;
 import com.datagroup.ESLS.dao.TagDao;
+import com.datagroup.ESLS.entity.CycleJob;
 import com.datagroup.ESLS.entity.Router;
+import com.datagroup.ESLS.entity.SystemVersionArgs;
 import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.netty.command.CommandConstant;
 import com.datagroup.ESLS.service.RouterService;
 import com.datagroup.ESLS.utils.NettyUtil;
+import com.datagroup.ESLS.utils.RequestBeanUtil;
 import com.datagroup.ESLS.utils.SendCommandUtil;
 import com.datagroup.ESLS.utils.SpringContextUtil;
 import io.netty.channel.Channel;
@@ -32,6 +38,11 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
     private TagDao tagDao;
     @Autowired
     private NettyUtil nettyUtil;
+    @Autowired
+    private CycleJobDao cycleJobDao;
+    @Autowired
+    private DynamicTask dynamicTask;
+
     @Override
     public List<Router> findAll() {
         return routerDao.findAll();
@@ -97,31 +108,37 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
     // 路由器巡检
     @Override
     public ResponseBean routerScan(RequestBean requestBean) {
-        int sum = 0;
-        int successNumber = 0;
         String contentType = CommandConstant.QUERYROUTER;
         List<Router> routerList = new ArrayList<>();
         for (RequestItem items : requestBean.getItems()) {
             routerList.addAll(findByArrtribute(TableConstant.TABLE_ROUTERS, items.getQuery(), items.getQueryString(), Router.class));
         }
         ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(routerList, contentType,CommandConstant.COMMANDTYPE_ROUTER);
-        sum +=responseBean.getSum();
-        successNumber +=responseBean.getSuccessNumber();
-        return new ResponseBean(sum, successNumber);
+        return responseBean;
+    }
+
+    @Override
+    public ResponseBean routerScanByCycle(RequestBean requestBean) {
+        // 设置定期巡检
+        CycleJob cyclejob = new CycleJob();
+        // cron表达式
+        cyclejob.setCron("0 0/1 * * * ?");
+        cyclejob.setArgs(RequestBeanUtil.getRequestBeanAsString(requestBean));
+        cyclejob.setMode(ModeConstant.DO_BY_ROUTER);
+        cyclejob.setType(ModeConstant.DO_BY_ROUTER_SCAN);
+        cycleJobDao.save(cyclejob);
+        dynamicTask.addRouterScanTask("0 0/1 * * * ?",requestBean);
+        return new ResponseBean(requestBean.getItems().size(), requestBean.getItems().size());
     }
 
     @Override
     public ResponseBean settingRouter(RequestBean requestBean) {
-        int sum = 0;
-        int successNumber = 0;
         List<Router> routerList = new ArrayList<>();
         for (RequestItem items : requestBean.getItems()) {
             routerList.addAll(findByArrtribute(TableConstant.TABLE_ROUTERS, items.getQuery(), items.getQueryString(), Router.class));
         }
         ResponseBean responseBean = SendCommandUtil.sendCommandWithSettingRouters(routerList);
-        sum +=responseBean.getSum();
-        successNumber +=responseBean.getSuccessNumber();
-        return new ResponseBean(sum, successNumber);
+        return responseBean;
     }
     public Router updateRouter(Router router) {
         Router r = findById(router.getId()).get();
@@ -154,7 +171,7 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
                 message[14+i] = frequency[i];
             byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
             Channel channel = SpringContextUtil.getChannelByRouter(r);
-            String result = nettyUtil.sendMessageWithRepeat(channel, realMessage,SpringContextUtil.getRepeatTime());
+            String result = nettyUtil.sendMessageWithRepeat(channel, realMessage,Integer.valueOf(SystemVersionArgs.commandRepeatTime));
             if(result!=null && result.equals("成功")){
                 System.out.println("路由器设置成功");
             }

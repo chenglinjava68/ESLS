@@ -15,13 +15,12 @@ public class RolePermission {
     @Column(name = "id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)//自增主键
     private Long id;
-    @Column(name = "permisson_id")
-    private Long permisson_id;
-    @Column(name = "role_id")
-    private Long role_id;
-
-    public RolePermission(Long permissonId, Long roleId) {
-        this.permisson_id = permissonId;
-        this.role_id = roleId;
+    @Column(name = "permissionId")
+    private Long permissionId;
+    @Column(name = "roleId")
+    private Long roleId;
+    public RolePermission(Long permission_id, Long roleId) {
+        this.permissionId = permissionId;
+        this.roleId = roleId;
     }
 }

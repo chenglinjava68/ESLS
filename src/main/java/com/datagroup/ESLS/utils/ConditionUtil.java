@@ -13,10 +13,6 @@ public class ConditionUtil {
     public static String QUERY_ATTRIBUTE_PAGE = "query_attribute_page";
 
     public static String judgeArgument(String query, String queryString, Integer page, Integer count) {
-        System.out.println(query);
-        System.out.println(queryString);
-        System.out.println(page);
-        System.out.println(count);
         // 参数不合规范
         if ((query == null && queryString != null) || (query != null && queryString == null) || (page == null && count != null) || (page != null && count == null))
             return null;

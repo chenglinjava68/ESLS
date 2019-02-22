@@ -14,13 +14,13 @@ public class UserRole {
     @Column(name = "id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)//自增主键
     private Long id;
-    @Column(name = "role_id")
-    private Long role_id;
-    @Column(name = "user_id")
-    private Long user_id;
+    @Column(name = "roleId")
+    private Long roleId;
+    @Column(name = "userId")
+    private Long userId;
 
     public UserRole(Long roleId, Long userId) {
-        this.role_id = roleId;
-        this.user_id = userId;
+        this.roleId = roleId;
+        this.userId = userId;
     }
 }

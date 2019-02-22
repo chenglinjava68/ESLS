@@ -133,73 +133,74 @@ public class PoiUtil {
                 saveEntity(dataColumnList,tableName,row);
             }
         } catch (Exception e) {
-           throw new TagServiceException(ResultEnum.FILE_ERROR);
+            throw new TagServiceException(ResultEnum.FILE_ERROR);
         }
     }
 
-    public static void importCsvDataFile(MultipartFile file, List dataColumnList,String tableName) {
+    public static void importCsvDataFile(InputStream fileInputStream, List dataColumnList,String tableName,Integer mode) {
         try {
-            Reader reader = new InputStreamReader(file.getInputStream());
+            Reader reader = new InputStreamReader(fileInputStream);
             CsvReader csvReader = new CsvReader(reader);
             // 读表头
             csvReader.readHeaders();
             while(csvReader.readRecord()) {
                 // 读一整行 System.out.println(csvReader.getRawRecord());
                 // 读这行的某一列  System.out.println(csvReader.get("id"));
-                saveEntity(dataColumnList,tableName,csvReader);
+                saveEntity(dataColumnList,tableName,csvReader,mode);
             }
         } catch (Exception e) {
             throw new TagServiceException(ResultEnum.FILE_ERROR);
         }
     }
     public static void saveEntity(List dataColumnList,String tableName,Row row) throws Exception {
-            // 根据类名实例化实体类
-            Class clazz = Class.forName("com.datagroup.ESLS.entity." + SqlConstant.EntityToSqlMap.get(tableName));
-            Object o = clazz.newInstance();
-            //属性赋值
-            for (int j = 0; j < dataColumnList.size(); j++) {
-                if(j==0) continue;
-                String column = dataColumnList.get(j).toString();
-                String objectColumn = column;
-                boolean flag = false;
-                // 列名以id结尾且不是主键
-                if (column.charAt(column.length() - 2) == 'i' && column.charAt(column.length() - 1) == 'd' && column.length() > 2) {
-                    objectColumn = column.substring(0, column.length() - 2);
-                    flag = true;
-                }
-                Field field = clazz.getDeclaredField(objectColumn);
-                field.setAccessible(true);
-                if(field.getType().getName().contains("[B"))
-                    continue;
-                // 是对象里面的对象
-                if (flag && !StringUtil.isEmpty(row.getCell(j).getStringCellValue())) {
-                    Class goodClazz = Class.forName(field.getType().getName());
-                    Object good = goodClazz.newInstance();
-                    Field fieldItem = good.getClass().getDeclaredField("id");
-                    fieldItem.setAccessible(true);
-                    fieldItem.set(good,converAttributeValue(fieldItem.getType().getName(),String.valueOf(getCellValueByType(row.getCell(j)))));
-                    field.set(o,good);
-                }
-                // 不是对象的对象
-                else if(!flag)
-                    field.set(o,converAttributeValue(field.getType().getName(),String.valueOf(getCellValueByType(row.getCell(j)))));
+        // 根据类名实例化实体类
+        Class clazz = Class.forName("com.datagroup.ESLS.entity." + SqlConstant.EntityToSqlMap.get(tableName));
+        Object o = clazz.newInstance();
+        //属性赋值
+        for (int j = 0; j < dataColumnList.size(); j++) {
+            if(j==0) continue;
+            String column = dataColumnList.get(j).toString();
+            String objectColumn = column;
+            boolean flag = false;
+            // 列名以id结尾且不是主键
+            if (column.charAt(column.length() - 2) == 'i' && column.charAt(column.length() - 1) == 'd' && column.length() > 2) {
+                objectColumn = column.substring(0, column.length() - 2);
+                flag = true;
             }
-            // 根据类名实例化service类进行存储数据库操作
-            // Class clazz = Class.forName(className);
-            // Object obj = clazz.newInstance(); 无效
-            Object serviceObj = SpringContextUtil.getBean(SqlConstant.EntityToSqlMap.get(tableName) + "Service");
-            // 得到方法对象,有参的方法需要指定参数类型
-            Method saveOne = serviceObj.getClass().getMethod("saveOne", clazz);
-            // 执行存储方法，有参传参 结果为返回值
-            saveOne.invoke(serviceObj, o);
+            Field field = clazz.getDeclaredField(objectColumn);
+            field.setAccessible(true);
+            if(field.getType().getName().contains("[B"))
+                continue;
+            // 是对象里面的对象
+            if (flag && !StringUtil.isEmpty(row.getCell(j).getStringCellValue())) {
+                Class goodClazz = Class.forName(field.getType().getName());
+                Object good = goodClazz.newInstance();
+                Field fieldItem = good.getClass().getDeclaredField("id");
+                fieldItem.setAccessible(true);
+                fieldItem.set(good,converAttributeValue(fieldItem.getType().getName(),String.valueOf(getCellValueByType(row.getCell(j)))));
+                field.set(o,good);
+            }
+            // 不是对象的对象
+            else if(!flag)
+                field.set(o,converAttributeValue(field.getType().getName(),String.valueOf(getCellValueByType(row.getCell(j)))));
+        }
+        // 根据类名实例化service类进行存储数据库操作
+        // Class clazz = Class.forName(className);
+        // Object obj = clazz.newInstance(); 无效
+        Object serviceObj = SpringContextUtil.getBean(SqlConstant.EntityToSqlMap.get(tableName) + "Service");
+        // 得到方法对象,有参的方法需要指定参数类型
+        Method saveOne = serviceObj.getClass().getMethod("saveOne", clazz);
+        // 执行存储方法，有参传参 结果为返回值
+        saveOne.invoke(serviceObj, o);
     }
-    public static void saveEntity(List dataColumnList,String tableName,CsvReader csvReader) throws Exception {
+    public static void saveEntity(List dataColumnList,String tableName,CsvReader csvReader,Integer mode) {
+        try {
             // 根据类名实例化实体类
             Class clazz = Class.forName("com.datagroup.ESLS.entity." + SqlConstant.EntityToSqlMap.get(tableName));
             Object o = clazz.newInstance();
             //属性赋值
             for (int j = 0; j < dataColumnList.size(); j++) {
-                if(j==0) continue;
+                if (j == 0) continue;
                 String column = dataColumnList.get(j).toString();
                 String objectColumn = column;
                 boolean flag = false;
@@ -211,7 +212,7 @@ public class PoiUtil {
                 Field field = clazz.getDeclaredField(objectColumn);
                 field.setAccessible(true);
                 // 为字节数组类型 跳过无法处理
-                if(field.getType().getName().contains("[B"))
+                if (field.getType().getName().contains("[B"))
                     continue;
                 // 是对象里面的对象
                 if (flag && !StringUtil.isEmpty(csvReader.get(column))) {
@@ -219,17 +220,24 @@ public class PoiUtil {
                     Object good = goodClazz.newInstance();
                     Field fieldItem = good.getClass().getDeclaredField("id");
                     fieldItem.setAccessible(true);
-                    fieldItem.set(good,converAttributeValue(fieldItem.getType().getName(),csvReader.get(column)));
-                    field.set(o,good);
+                    fieldItem.set(good, converAttributeValue(fieldItem.getType().getName(), csvReader.get(column)));
+                    field.set(o, good);
                 }
                 // 不是对象的对象
-                else if(!flag)
-                    field.set(o,converAttributeValue(field.getType().getName(),csvReader.get(column)));
+                else if (!flag)
+                    field.set(o, converAttributeValue(field.getType().getName(), csvReader.get(column)));
             }
-            System.out.println(o.toString());
             Object serviceObj = SpringContextUtil.getBean(SqlConstant.EntityToSqlMap.get(tableName) + "Service");
-            Method saveOne = serviceObj.getClass().getMethod("saveOne", clazz);
+            Method saveOne;
+            if(mode==0)
+                saveOne = serviceObj.getClass().getMethod("saveOne", clazz);
+            else
+                saveOne = serviceObj.getClass().getMethod("updateGood", clazz);
             saveOne.invoke(serviceObj, o);
+        }
+        catch (Exception e){
+        }
+
     }
     private static void setSizeColumn(Sheet sheet, int size) {
         for (int columnNum = 0; columnNum < size; columnNum++) {
@@ -266,7 +274,8 @@ public class PoiUtil {
         try {
             String userAgent = request.getHeader("User-Agent");
             // 解决中文乱码问题
-            String fileName1 = fileName + "-Excel" + ".xlsx";
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmm");
+            String fileName1 = fileName +sdf.format(new Date())+ ".xlsx";
             String newFilename = URLEncoder.encode(fileName1, "UTF8");
             // 如果没有userAgent，则默认使用IE的方式进行编码，因为毕竟IE还是占多数的
             String rtn = "filename=\"" + newFilename + "\"";
@@ -305,8 +314,8 @@ public class PoiUtil {
 
     public static void responseSetProperties(String fileName, HttpServletResponse response) throws UnsupportedEncodingException {
         // 设置文件后缀
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        String fn = fileName + "-" + sdf.format(new Date()) + ".csv";
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmm");
+        String fn = fileName+ sdf.format(new Date())+ ".csv";
         // 读取字符编码
         String utf = "UTF-8";
         // 设置响应
@@ -317,7 +326,6 @@ public class PoiUtil {
     }
     // 自动匹配类型
     public  static Object converAttributeValue(String type,String value){
-//        System.out.println(type+" "+value);
         if("long".equals(type)|| Long.class.getTypeName().equals(type)){
             return Long.parseLong(StringUtil.isEmpty(value)?"0":value);
         }else if("double".equals(type)|| Double.class.getTypeName().equals(type)){

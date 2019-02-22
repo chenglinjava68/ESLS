@@ -28,7 +28,7 @@ public class RedisUtil {
         boolean result = false;
         ValueOperations<String, String> valueOperations = this.stringRedisTemplate.opsForValue();
         valueOperations.set(key, JSON.toJSONString(value));
-        redisTemplate.expire(key, expireTime, TimeUnit.SECONDS);
+        redisTemplate.expire(key, expireTime, TimeUnit.MILLISECONDS);
         result = true;
         return result;
     }

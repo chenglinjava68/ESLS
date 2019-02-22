@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface DispmsDao extends JpaRepository<Dispms,Long> {
     List<Dispms> findByStyleId(Long StyleId);
+    Dispms findByStyleIdAndColumnTypeAndSourceColumn(Long styleId, String columnType,String sourceColumn);
 }

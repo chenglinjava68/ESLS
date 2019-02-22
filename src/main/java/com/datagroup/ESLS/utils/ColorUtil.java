@@ -56,4 +56,16 @@ public class ColorUtil {
             return true;
         return false;
     }
+    public static Integer getFontType(String fontType){
+        switch (fontType){
+            case "bold":
+                return Font.BOLD;
+            case "plain":
+                return Font.PLAIN;
+            case "italic":
+                return Font.ITALIC;
+            default:
+                return Font.BOLD;
+        }
+    }
 }

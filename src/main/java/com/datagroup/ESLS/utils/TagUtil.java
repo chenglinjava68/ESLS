@@ -52,4 +52,20 @@ public class TagUtil {
         routerService.saveOne(newRouter);
         return result;
     }
+    public static List<Tag> getTagsByRouters(List<Router> routers){
+        TagService tagService = (TagService)SpringContextUtil.getBean("TagService");
+        List<Tag> result = new ArrayList<>();
+        for(Router r : routers){
+            List<Tag> itemTags = tagService.findByRouterId(r.getId());
+            result.addAll(itemTags);
+        }
+        return result;
+    }
+    public static void setIsNotWorking(List<Tag> tags){
+        TagService tagService = (TagService)SpringContextUtil.getBean("TagService");
+        for(Tag tag:tags){
+            tag.setIsWorking((byte) 0);
+            tagService.saveOne(tag);
+        }
+    }
 }

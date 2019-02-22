@@ -11,6 +11,8 @@ import org.apache.shiro.crypto.hash.SimpleHash;
 import org.apache.shiro.util.ByteSource;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
@@ -21,6 +23,28 @@ import java.util.Optional;
 public class UserServiceImpl extends BaseServiceImpl implements UserService {
     @Autowired
     private UserDao userDao;
+
+    @Override
+    public List<User> findAll() {
+        return userDao.findAll();
+    }
+
+    @Override
+    public List<User> findAll(Integer page, Integer count) {
+        List<User> content = userDao.findAll(PageRequest.of(page, count, Sort.Direction.DESC, "id")).getContent();
+        return content;
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        try {
+            userDao.deleteById(id);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @Override
     public List<Permission> findPermissionByUserId(Long userId) {
         return userDao.findPermissionByUserId(userId);
@@ -37,8 +61,8 @@ public class UserServiceImpl extends BaseServiceImpl implements UserService {
     }
 
     @Override
-    public Optional<User> findById(Long id) {
-        return userDao.findById(id);
+    public User findById(Long id) {
+        return userDao.findById(id).get();
     }
 
     @Override

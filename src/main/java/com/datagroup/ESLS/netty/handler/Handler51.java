@@ -10,6 +10,8 @@ package com.datagroup.ESLS.netty.handler;
         import lombok.extern.slf4j.Slf4j;
         import org.springframework.stereotype.Component;
 
+        import java.util.List;
+
 @Component("handler51")
 @Slf4j
 public class Handler51 implements ServiceHandler{
@@ -41,6 +43,7 @@ public class Handler51 implements ServiceHandler{
                 tag.setState(state[0]);
             }
             tag.setForbidState(1);
+            tag.setIsWorking((byte) 1);
             Tag save = tagService.saveOne(tag);
             if(save==null)
                 return CommandCategory.getResponse(CommandConstant.NACK,header,CommandConstant.COMMANDTYPE_ROUTER,null);

@@ -11,8 +11,10 @@ import com.datagroup.ESLS.service.PermissionService;
 import com.datagroup.ESLS.service.RoleService;
 import com.datagroup.ESLS.service.UserService;
 //import com.datagroup.ESLS.shiro.FilterChainDefinitionsService;
+import com.datagroup.ESLS.shiro.ShiroService;
 import com.datagroup.ESLS.utils.ConditionUtil;
 import io.swagger.annotations.*;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -38,8 +40,8 @@ public class RoleController {
     private UserService userService;
     @Autowired
     private PermissionService permissionService;
-//    @Autowired
-//    private FilterChainDefinitionsService filterChainDefinitionsService;
+    @Autowired
+    private ShiroService shiroService;
     @ApiOperation(value = "根据条件获取角色信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = " 查询条件 可为所有字段", dataType = "String", paramType = "query"),
@@ -49,6 +51,7 @@ public class RoleController {
     })
     @GetMapping("/roles")
     @Log("获取角色数据")
+    @RequiresPermissions("系统菜单")
     public ResponseEntity<ResultBean> getRoles(@RequestParam(required = false) String query, @RequestParam(required = false) String queryString, @Min(message = "data.page.min", value = 0)@RequestParam(required = false) Integer page, @Min(message = "data.count.min", value = 0) @RequestParam(required = false) Integer count) {
         String result = ConditionUtil.judgeArgument(query, queryString, page, count);
         if(result==null)
@@ -80,6 +83,7 @@ public class RoleController {
     @ApiOperation(value = "获取指定ID的角色信息")
     @GetMapping("/role/{id}")
     @Log("获取指定ID的角色信息")
+    @RequiresPermissions("获取指定ID的信息")
     public ResponseEntity<ResultBean> getRoleById(@PathVariable Long id) {
         Optional<Role> result = roleService.findById(id);
         if (result.isPresent()) {
@@ -91,6 +95,7 @@ public class RoleController {
     @ApiOperation(value = "添加或修改角色信息")
     @PostMapping("/role")
     @Log("添加或修改角色信息")
+    @RequiresPermissions("添加或修改信息")
     public ResponseEntity<ResultBean> saveRole(@ApiParam("角色描述") @RequestParam String name,@ApiParam("角色类型")  @RequestParam String type) {
         Role role = new Role(name,type);
         return new ResponseEntity<>(new ResultBean(roleService.saveOne(role)),HttpStatus.OK);
@@ -99,6 +104,7 @@ public class RoleController {
     @ApiOperation(value = "根据ID删除角色信息")
     @DeleteMapping("/role/{id}")
     @Log("根据ID删除角色信息")
+    @RequiresPermissions("删除指定ID的信息")
     public ResponseEntity<ResultBean> deleteRoleById(@PathVariable Long id) {
         // 删除角色表
         boolean flag = roleService.deleteById(id);
@@ -114,7 +120,7 @@ public class RoleController {
     }
     @ApiOperation("为指定ID的角色添加权限")
     @PutMapping("/role/addPerm/{id}")
-    public ResponseEntity<ResultBean> addRoleAndPermission(@PathVariable Long id,@RequestParam @ApiParam("权限信息ID集合") List<Long> longList) {
+    public ResponseEntity<ResultBean> addRoleAndPermission(@PathVariable Long id,@RequestBody @ApiParam("权限信息ID集合") List<Long> longList) {
         int sum = 0;
         Optional<Role> role = roleService.findById(id);
         if(!role.isPresent())
@@ -122,8 +128,13 @@ public class RoleController {
         for(Long permissonId:longList) {
             Optional<Permission> permission = permissionService.findById(permissonId);
             if(permission.isPresent()) {
-                if( roleAndPermissionDao.insertByCondition(id,permissonId)>0)
+                RolePermission rolePermission = new RolePermission();
+                rolePermission.setRoleId(id);
+                rolePermission.setPermissionId(permissonId);
+                if(roleAndPermissionDao.findByRoleIdAndPermissionId(id,permissonId)==null){
+                    roleAndPermissionDao.save(rolePermission);
                     sum++;
+                }
             }
         }
 //        filterChainDefinitionsService.updatePermission();
@@ -133,8 +144,8 @@ public class RoleController {
     @PutMapping("/role/addRole/{id}")
     public ResponseEntity<ResultBean> addUserAndRole(@PathVariable Long id,@RequestParam @ApiParam("角色信息ID集合") List<Long> longList) {
         int sum = 0;
-        Optional<User> user = userService.findById(id);
-        if(!user.isPresent()) {
+        User user = userService.findById(id);
+        if(user==null) {
             return new ResponseEntity<>(ResultBean.error("用户不存在"), HttpStatus.BAD_REQUEST);
         }
         for(Long roleId:longList) {

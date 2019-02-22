@@ -16,6 +16,7 @@ import com.datagroup.ESLS.utils.ConditionUtil;
 import com.datagroup.ESLS.utils.CopyUtil;
 import com.datagroup.ESLS.utils.ResponseUtil;
 import io.swagger.annotations.*;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -39,22 +40,21 @@ public class StyleController {
     private StyleService styleService;
     @Autowired
     private DispmsService dispmsService;
-    @Autowired
-    private TagService tagService;
 
     @ApiOperation(value = "根据条件获取样式信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = "查询条件 可为所有字段", dataType = "String", paramType = "query"),
             @ApiImplicitParam(name = "queryString", value = "查询条件的字符串", dataType = "String", paramType = "query"),
-            @ApiImplicitParam(name = "page", value = "页码", required = false, dataType = "int", paramType = "query"),
-            @ApiImplicitParam(name = "count", value = "数量", required = false, dataType = "int", paramType = "query")
+            @ApiImplicitParam(name = "page", value = "页码", dataType = "int", paramType = "query"),
+            @ApiImplicitParam(name = "count", value = "数量", dataType = "int", paramType = "query")
     })
     @GetMapping("/styles")
     @Log("获取样式数据")
+    @RequiresPermissions("系统菜单")
     public ResponseEntity<ResultBean> getStyles(@RequestParam(required = false) String query, @RequestParam(required = false) String queryString, @Min(message = "data.page.min", value = 0) @RequestParam(required = false) Integer page, @Min(message = "data.count.min", value = 0) @RequestParam(required = false) Integer count) {
         String result = ConditionUtil.judgeArgument(query, queryString, page, count);
         if(result==null)
-            return new ResponseEntity<>(ResultBean.error("参数组合有误 [query和queryString必须同时提供] [page和count必须同时提供]"), HttpStatus.OK);
+            return new ResponseEntity<>(ResultBean.error("参数组合有误 [query和queryString必须同时提供] [page和count必须同时提供]"), HttpStatus.BAD_REQUEST);
         // 查询全部
         if(result.equals(ConditionUtil.QUERY_ALL)) {
             List<Style> list = styleService.findAll();
@@ -81,12 +81,13 @@ public class StyleController {
             List<StyleVo> resultList = CopyUtil.copyStyle(content);
             return new ResponseEntity<>(new ResultBean(resultList, list.size()), HttpStatus.OK);
         }
-        return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.OK);
+        return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.BAD_REQUEST);
     }
 
     @ApiOperation(value = "获取指定ID的样式信息")
     @GetMapping("/style/{id}")
     @Log("获取指定ID的样式信息")
+    @RequiresPermissions("获取指定ID的信息")
     public ResponseEntity<ResultBean> getStyleById(@PathVariable Long id) {
         Optional<Style> result = styleService.findById(id);
         if (result.isPresent()) {
@@ -106,17 +107,25 @@ public class StyleController {
         if ((result = ResponseUtil.testListSize("没有对应ID的小样式", dispmses)) != null) return result;
         return new ResponseEntity<>(ResultBean.success(CopyUtil.copyDispms(dispmses)), HttpStatus.OK);
     }
+    @ApiOperation(value = "添加样式信息")
+    @GetMapping("/style")
+    @Log("添加或修改样式信息")
+    @RequiresPermissions("添加或修改信息")
+    public ResponseEntity<ResultBean> saveStyleByStyleType(@RequestParam("样式名字") String styleType,@RequestParam(value = "cron表达式",required = false) String cron) {
+        Style result = styleService.saveOne(styleType,cron);
+        return new ResponseEntity<>(new ResultBean(result), HttpStatus.OK);
+    }
     @ApiOperation(value = "添加或修改样式信息")
     @PostMapping("/style")
-    @Log("添加或修改样式信息")
-    public ResponseEntity<ResultBean> saveStyle(@RequestBody @ApiParam(value = "样式信息json格式") Style style) {
+    @RequiresPermissions("添加或修改信息")
+    public ResponseEntity<ResultBean> saveStyle(@RequestBody @ApiParam(value = "样式信息JSON格式") Style style) {
         Style result = styleService.saveOne(style);
         return new ResponseEntity<>(new ResultBean(result), HttpStatus.OK);
     }
-
     @ApiOperation(value = "根据ID删除样式信息")
     @DeleteMapping("/style/{id}")
     @Log("根据ID删除样式信息")
+    @RequiresPermissions("删除指定ID的信息")
     public ResponseEntity<ResultBean> deleteStyleById(@PathVariable Long id) {
         boolean flag = styleService.deleteById(id);
         if (flag)

@@ -44,14 +44,9 @@ public class User implements Serializable {
     @ManyToOne(cascade={CascadeType.MERGE})
     @JoinColumn(name = "shopid", referencedColumnName = "id")
     private Shop shop;
-    // 一个用户具有多个角色
-    // 关联角色
-    //@JoinTable: 用于映射中间表
-    //joinColumns: 当前方在中间表的外键字段名称
-    //inverseJoinColumns：对方在中间表的外键字段名称
     @ToStringExclude
     @ManyToMany(fetch= FetchType.EAGER)//立即从数据库中进行加载数据;
-    @JoinTable(name = "user_role", joinColumns = { @JoinColumn(name = "user_id") }, inverseJoinColumns ={@JoinColumn(name = "role_id") })
+    @JoinTable(name = "user_role", joinColumns = { @JoinColumn(name = "userId") }, inverseJoinColumns ={@JoinColumn(name = "roleId") })
     private List<Role> roleList;
 
     @Override

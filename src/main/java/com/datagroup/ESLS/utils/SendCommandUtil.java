@@ -2,6 +2,7 @@ package com.datagroup.ESLS.utils;
 
 import com.datagroup.ESLS.common.response.ResponseBean;
 import com.datagroup.ESLS.entity.Router;
+import com.datagroup.ESLS.entity.SystemVersionArgs;
 import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.netty.command.CommandConstant;
 import com.datagroup.ESLS.serviceImpl.AsyncServiceTask;
@@ -80,7 +81,7 @@ public class SendCommandUtil {
                 SpringContextUtil.printBytes("路由器设置信息：",message);
                 byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
                 Channel channel = SpringContextUtil.getChannelByRouter(router);
-                ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(),SpringContextUtil.getRepeatTime());
+                ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
                 listenableFutures.add(result);
             }
         }
@@ -104,7 +105,7 @@ public class SendCommandUtil {
         catch (Exception e){
             System.out.println("SendCommandUtil--updateTagStyle : "+e);
         }
-         int successNumber = waitAllThread(listenableFutures);
+        waitAllThread(listenableFutures);
         return new ResponseBean(sum, sum);
     }
     public  static ResponseBean sendAwakeMessage(List<byte[]> byteList,Router router,Integer messageType){

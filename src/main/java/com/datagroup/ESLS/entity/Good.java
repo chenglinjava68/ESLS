@@ -50,8 +50,8 @@ public class Good implements Serializable {
     private double price;
     @Column(name = "promotePrice")
     private double promotePrice;
-    @Column(name = "photo")
-    private byte[] photo;
+    @Column(name = "imageUrl")
+    private String imageUrl;
     @Column(name = "waitUpdate")
     private Integer waitUpdate;
     @Column(name = "shelfNumber")
@@ -73,9 +73,6 @@ public class Good implements Serializable {
     @OneToMany(mappedBy = "good",fetch = FetchType.EAGER)
     @JsonIgnore
     private Collection<Tag> tags;
-    @OneToMany(mappedBy = "good")
-    @JsonIgnore
-    private Collection<TagandGood> tagsAndGoods;
     public Good() {}
 
     public Good(String barCode, String name, double price, double promotePrice,String promotionReason, String unit ,String origin ,String spec,String category,String shelfNumber,String rfus01,String rfus02,String qrCode,String provider) {

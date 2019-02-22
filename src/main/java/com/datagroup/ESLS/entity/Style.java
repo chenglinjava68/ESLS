@@ -28,18 +28,12 @@ public class Style implements Serializable {
     private String styleNumber;
     @Column(name = "styleType")
     private String styleType;
-    @Column(name = "name")
-    private String name;
     @Column(name = "width")
     private Integer width;
     @Column(name = "height")
     private Integer height;
-    @Column(name = "refreshState")
-    private Integer refreshState;
-    @Column(name = "refreshTime")
-    private Integer refreshTime;
-    @Column(name = "refreshBegin")
-    private Timestamp refreshBegin;
+    @Column(name = "cron")
+    private String cron;
     @OneToMany(mappedBy = "style")
     @JsonIgnore
     @ToStringExclude

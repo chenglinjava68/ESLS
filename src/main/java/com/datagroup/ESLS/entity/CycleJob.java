@@ -5,9 +5,9 @@ import lombok.Data;
 import javax.persistence.*;
 
 @Entity
-@Table(name = "cyclejob", schema = "tags", catalog = "")
+@Table(name = "cyclejobs", schema = "tags", catalog = "")
 @Data
-public class cyclejob {
+public class CycleJob {
     @Id
     @Column(name = "id", nullable = false)
     @GeneratedValue(strategy = GenerationType.IDENTITY)//自增主键

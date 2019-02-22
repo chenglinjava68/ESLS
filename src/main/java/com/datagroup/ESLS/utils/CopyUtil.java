@@ -101,4 +101,22 @@ public class CopyUtil {
         });
         return resultList;
     }
+    public static List<UserVo> copyUser(List<User> content) {
+        List<UserVo> resultList = new ArrayList<>();
+        content.forEach(
+                item -> {
+                    UserVo userVo = new UserVo();
+                    BeanUtils.copyProperties(item, userVo);
+                    userVo.setShopId(item.getShop() != null ? item.getShop().getId() : 0);
+                    List<Role> roleList = item.getRoleList();
+                    StringBuffer sb = new StringBuffer();
+                    for(Role role:roleList){
+                        sb.append(role.getId() + " ");
+                    }
+                    userVo.setRoleList(sb.toString());
+                    resultList.add(userVo);
+                }
+        );
+        return resultList;
+    }
 }

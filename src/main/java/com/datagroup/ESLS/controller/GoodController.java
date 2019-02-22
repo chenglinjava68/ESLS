@@ -11,12 +11,14 @@ import com.datagroup.ESLS.service.GoodService;
 import com.datagroup.ESLS.utils.ConditionUtil;
 import com.datagroup.ESLS.utils.CopyUtil;
 import io.swagger.annotations.*;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.constraints.Min;
 import java.util.ArrayList;
@@ -30,8 +32,6 @@ public class GoodController {
 
     @Autowired
     private GoodService goodService;
-    @Autowired
-    private GoodDao goodDao;
     @ApiOperation(value = "根据条件获取商品信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = "查询条件 可为所有字段 分隔符为单个空格 ", dataType = "String", paramType = "query"),
@@ -41,10 +41,11 @@ public class GoodController {
     })
     @GetMapping("/goods")
     @Log("获取商品信息")
+    @RequiresPermissions("系统菜单")
     public ResponseEntity<ResultBean> getGoods(@RequestParam(required = false) String query, @RequestParam(required = false) String queryString, @Min(message = "data.page.min", value = 0)@RequestParam(required = false) Integer page,@RequestParam(required = false) @Min(message = "data.count.min", value = 0)Integer count) {
         String result = ConditionUtil.judgeArgument(query, queryString, page, count);
         if(result==null)
-            return new ResponseEntity<>(ResultBean.error("参数组合有误 [query和queryString必须同时提供] [page和count必须同时提供]"), HttpStatus.OK);
+            return new ResponseEntity<>(ResultBean.error("参数组合有误 [query和queryString必须同时提供] [page和count必须同时提供]"), HttpStatus.BAD_REQUEST);
         // 带条件或查询
         if(query!=null && query.contains(" ")){
             List content = goodService.findAllBySql(TableConstant.TABLE_GOODS, "like", query, queryString, page, count, Good.class);
@@ -77,12 +78,13 @@ public class GoodController {
             List resultList = CopyUtil.copyGood(content);
             return new ResponseEntity<>(new ResultBean(resultList, list.size()), HttpStatus.OK);
         }
-        return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.OK);
+        return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.BAD_REQUEST);
     }
 
     @ApiOperation("根据多个字段搜索数据")
     @PostMapping("/goods/search")
     @Log("根据多个字段搜索数据")
+    @RequiresPermissions("查询和搜索功能")
     public ResponseEntity<ResultBean> searchGoodsByConditon(@RequestParam String connection,@Min(message = "data.page.min", value = 0)@RequestParam Integer page,@RequestParam @Min(message = "data.count.min", value = 0)Integer count,@RequestBody @ApiParam(value = "查询条件json格式") RequestBean requestBean){
         List<Good> goods = goodService.findAllBySql(TableConstant.TABLE_GOODS, connection, requestBean, page, count, Good.class);
         return new ResponseEntity<>(new ResultBean(CopyUtil.copyGood(goods)), HttpStatus.OK);
@@ -91,6 +93,7 @@ public class GoodController {
     @GetMapping("/goods/{id}")
     @Log("获取指定ID的商品信息")
     @Transactional
+    @RequiresPermissions("获取指定ID的信息")
     public ResponseEntity<ResultBean> getGoodById(@PathVariable Long id) {
         Good good = goodService.findById(id);
         if(good==null)
@@ -104,6 +107,7 @@ public class GoodController {
     @ApiOperation(value = "添加或修改商品信息")
     @PostMapping("/good")
     @Log("添加或修改商品信息")
+    @RequiresPermissions("添加或修改信息")
     public ResponseEntity<ResultBean>  saveGood(@RequestBody @ApiParam(value = "商品信息json格式") Good good) {
         return new ResponseEntity<>(new ResultBean(goodService.saveOne(good)),HttpStatus.OK);
     }
@@ -111,6 +115,7 @@ public class GoodController {
     @ApiOperation(value = "根据ID删除商品信息")
     @DeleteMapping("/good/{id}")
     @Log("根据ID删除商品信息")
+    @RequiresPermissions("删除指定ID的信息")
     public ResponseEntity<ResultBean> deleteGoodById(@PathVariable Long id) {
         boolean flag = goodService.deleteById(id);
         if(flag)
@@ -134,5 +139,34 @@ public class GoodController {
     public ResponseEntity<ResultBean> getBindTags(@RequestParam String query,@RequestParam String connection,@RequestParam String queryString){
         List<Tag> tags = goodService.getBindTags(query, connection, queryString);
         return new ResponseEntity<>(new ResultBean(CopyUtil.copyTag(tags)),HttpStatus.OK);
+    }
+    @ApiOperation("设置商品基本数据和商品变价文件路径及cron表达式（定期任务）")
+    @GetMapping("/good/schedule")
+    @Log("通过商品ID获取其绑定的所有标签信息")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "cron", value = "cron表达式 ", dataType = "String", paramType = "query"),
+            @ApiImplicitParam(name = "rootFilePath", value = "文件根路径", dataType = "String", paramType = "query"),
+            @ApiImplicitParam(name = "mode", value = "-1为商品基本数据 -2为商品变价数据", dataType = "int", paramType = "query")
+    })
+    public ResponseEntity<ResultBean> setS(@RequestParam String cron,@RequestParam String rootFilePath,@RequestParam Integer mode){
+        boolean result = goodService.setScheduleTask(cron, rootFilePath, mode);
+        if(result)
+            return new ResponseEntity<>(new ResultBean("设置成功"),HttpStatus.OK);
+        else
+            return new ResponseEntity<>(new ResultBean("设置失败"),HttpStatus.BAD_REQUEST);
+
+    }
+    @ApiOperation("上传商品基本数据及变价数据文件")
+    @GetMapping("/good/upload")
+    @Log("上传商品基本数据及变价数据文件")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "mode", value = "-1为商品基本数据 -2为商品变价数据", dataType = "int", paramType = "query")
+    })
+    public ResponseEntity<ResultBean> uploadGoodData(@ApiParam(value = "文件信息", required = true) @RequestParam("file") MultipartFile file,@RequestParam Integer mode){
+        boolean result = goodService.uploadGoodData(file, mode);
+        if(result)
+            return new ResponseEntity<>(new ResultBean("上传成功"),HttpStatus.OK);
+        else
+            return new ResponseEntity<>(new ResultBean("上传失败"),HttpStatus.BAD_REQUEST);
     }
 }

@@ -2,49 +2,125 @@ package com.datagroup.ESLS.controller;
 
 import com.datagroup.ESLS.aop.Log;
 import com.datagroup.ESLS.common.constant.TableConstant;
-import com.datagroup.ESLS.common.exception.ResultEnum;
-import com.datagroup.ESLS.common.exception.TagServiceException;
 import com.datagroup.ESLS.common.request.RequestBean;
 import com.datagroup.ESLS.common.request.RequestItem;
 import com.datagroup.ESLS.common.response.ResultBean;
-import com.datagroup.ESLS.dao.AdminDao;
 import com.datagroup.ESLS.dto.UserVo;
 import com.datagroup.ESLS.entity.Admin;
+import com.datagroup.ESLS.entity.SystemVersionArgs;
 import com.datagroup.ESLS.entity.User;
 import com.datagroup.ESLS.redis.RedisUtil;
 import com.datagroup.ESLS.service.UserService;
+import com.datagroup.ESLS.utils.ConditionUtil;
+import com.datagroup.ESLS.utils.CopyUtil;
 import com.datagroup.ESLS.utils.SpringContextUtil;
 import com.datagroup.ESLS.utils.ValidatorUtil;
 import io.swagger.annotations.*;
 import org.apache.shiro.SecurityUtils;
 import org.apache.shiro.authc.UsernamePasswordToken;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.apache.shiro.session.Session;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.List;
 
 @RestController
 @Api(description = "用户管理API")
-//实现跨域注解
-//origin="*"代表所有域名都可访问
-//maxAge飞行前响应的缓存持续时间的最大年龄，简单来说就是Cookie的有效期 单位为秒
-//若maxAge是负数,则代表为临时Cookie,不会被持久化,Cookie信息保存在浏览器内存中,浏览器关闭Cookie就消失
 @CrossOrigin(origins = "*", maxAge = 3600)
+@Validated
 public class UserController {
     @Autowired
     private UserService userService;
     @Autowired
     private RedisUtil redisUtil;
+    @ApiOperation(value = "根据条件获取用户信息")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "query", value = "查询条件 可为所有字段 分隔符为单个空格 ", dataType = "String", paramType = "query"),
+            @ApiImplicitParam(name = "queryString", value = "查询条件的字符串", dataType = "String", paramType = "query"),
+            @ApiImplicitParam(name = "page", value = "页码", dataType = "int", paramType = "query"),
+            @ApiImplicitParam(name = "count", value = "数量", dataType = "int", paramType = "query")
+    })
+    @GetMapping("/users")
+    @Log("获取用户信息")
+    public ResponseEntity<ResultBean> getGoods(@RequestParam(required = false) String query, @RequestParam(required = false) String queryString, @Min(message = "data.page.min", value = 0)@RequestParam(required = false) Integer page, @RequestParam(required = false) @Min(message = "data.count.min", value = 0)Integer count) {
+        String result = ConditionUtil.judgeArgument(query, queryString, page, count);
+        if(result==null)
+            return new ResponseEntity<>(ResultBean.error("参数组合有误 [query和queryString必须同时提供] [page和count必须同时提供]"), HttpStatus.BAD_REQUEST);
+        // 带条件或查询
+        if(query!=null && query.contains(" ")){
+            List content = userService.findAllBySql(TableConstant.TABLE_USER, "like", query, queryString, page, count, User.class);
+            return new ResponseEntity<>(new ResultBean(content, content.size()), HttpStatus.OK);
+        }
+        // 查询全部
+        if(result.equals(ConditionUtil.QUERY_ALL)) {
+            List list = userService.findAll();
+            return new ResponseEntity<>(new ResultBean(list, list.size()), HttpStatus.OK);
+        }
+        // 查询全部分页
+        if(result.equals(ConditionUtil.QUERY_ALL_PAGE)){
+            List list = userService.findAll();
+            List content = userService.findAll(page, count);
+            return new ResponseEntity<>(new ResultBean(content, list.size()), HttpStatus.OK);
+        }
+        // 带条件查询全部
+        if(result.equals(ConditionUtil.QUERY_ATTRIBUTE_ALL)) {
+            List content = userService.findAllBySql(TableConstant.TABLE_USER, query, queryString,User.class);
+            return new ResponseEntity<>(new ResultBean(content, content.size()), HttpStatus.OK);
+        }
+        // 带条件查询分页
+        if(result.equals(ConditionUtil.QUERY_ATTRIBUTE_PAGE)) {
+            List list = userService.findAll();
+            List content = userService.findAllBySql(TableConstant.TABLE_USER, query, queryString, page, count,User.class);
+            return new ResponseEntity<>(new ResultBean(content, list.size()), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.OK);
+    }
+    @ApiOperation(value = "获取指定ID的用户信息信息")
+    @GetMapping("/users/{id}")
+    @Log("获取指定ID的用户信息")
+    @Transactional
+    @RequiresPermissions("获取指定ID的信息")
+    public ResponseEntity<ResultBean> getGoodById(@PathVariable Long id) {
+        User user = userService.findById(id);
+        if(user==null)
+            return new ResponseEntity<>(ResultBean.error("此ID用户不存在"),HttpStatus.BAD_REQUEST);
+        List users = new ArrayList<>();
+        users.add(user);
+        return new ResponseEntity<>(new ResultBean(users),HttpStatus.OK);
+    }
 
+    @ApiOperation(value = "根据ID删除用户信息")
+    @DeleteMapping("/user/{id}")
+    @Log("根据ID删除用户信息")
+    @RequiresPermissions("删除指定ID的信息")
+    public ResponseEntity<ResultBean> deleteGoodById(@PathVariable Long id) {
+        boolean flag = userService.deleteById(id);
+        if(flag)
+            return new ResponseEntity<>(ResultBean.success("删除成功"),HttpStatus.OK);
+        return new ResponseEntity<>(ResultBean.success("删除失败！没有指定ID的用户"),HttpStatus.BAD_REQUEST);
+    }
+    @ApiOperation(value = "根据用户ID获得用户角色")
+    @GetMapping("/user/role/{id}")
+    @Log("根据用户ID获得用户角色")
+    public ResponseEntity<ResultBean> getRolesByUserId(@PathVariable Long id) {
+        User user = userService.findById(id);
+        if(user==null)
+            return new ResponseEntity<>(ResultBean.error("获取失败！没有指定ID的用户"),HttpStatus.BAD_REQUEST);
+        else
+            return new ResponseEntity<>(ResultBean.success(user.getRoleList()),HttpStatus.OK);
+
+    }
     @ApiOperation(value = "user登录")
     @PostMapping("/user/login")
     public ResponseEntity<ResultBean> login(@Valid @RequestBody @ApiParam(value = "用户信息json格式") Admin adminEntity, BindingResult error) {
@@ -52,28 +128,20 @@ public class UserController {
             return new ResponseEntity<>(ResultBean.error(ValidatorUtil.getError(error)), HttpStatus.BAD_REQUEST);
         User admin = userService.findByName(adminEntity.getUsername());
         if (admin != null) {
-//            try {
-//                UsernamePasswordToken usernamePasswordToken = new UsernamePasswordToken(adminEntity.getUsername(), adminEntity.getPassword());
-//                SecurityUtils.getSubject().login(usernamePasswordToken);
-//            }
-//            catch (Exception e){
-//                e.printStackTrace();
-//                throw new TagServiceException(ResultEnum.USER_LOGIN_ERROR);
-//            }
-//            HttpHeaders responseHeaders = new HttpHeaders();
-//            String token = TokenUtil.getToken(admin);
-//            redisUtil.sentinelSet(token, admin, SpringContextUtil.getAliveTime());
-//            responseHeaders.set("X-ESLS-TOKEN", token);
             UsernamePasswordToken usernamePasswordToken = new UsernamePasswordToken(adminEntity.getUsername(), adminEntity.getPassword());
             SecurityUtils.getSubject().login(usernamePasswordToken);
-//            String JWTtoken = JWTUtil.sign(admin.getName(), admin.getPasswd());
             HttpHeaders responseHeaders = new HttpHeaders();
             Session session = SecurityUtils.getSubject().getSession();
             Serializable id = session.getId();
-            session.setTimeout(SpringContextUtil.getAliveTime());
-            System.out.println(id);
-            responseHeaders.set("X-ESLS-TOKEN", (String) id);
-            return new ResponseEntity<>(ResultBean.success(admin),responseHeaders, HttpStatus.OK);
+            session.setTimeout(Long.valueOf(SystemVersionArgs.tokenAliveTime));
+            redisUtil.sentinelSet((String) id, admin, Long.valueOf(SystemVersionArgs.tokenAliveTime));
+            responseHeaders.set("ESLS", (String) id);
+            responseHeaders.set("Access-Control-Expose-Headers", "ESLS");
+            List<User> usrs = new ArrayList<>();
+            usrs.add(admin);
+            List<UserVo> userVos = CopyUtil.copyUser(usrs);
+            System.out.println(userVos);
+            return new ResponseEntity<>(ResultBean.success(userVos),responseHeaders, HttpStatus.OK);
         } else {
             //登陆失败
             return new ResponseEntity<>(ResultBean.error("用户名或密码错误"), HttpStatus.NOT_ACCEPTABLE);
@@ -81,6 +149,7 @@ public class UserController {
     }
     @ApiOperation(value = "用户注册")
     @PostMapping("/user/registry")
+    @RequiresPermissions("添加或修改信息")
     public ResponseEntity<ResultBean> registryUser(@RequestBody @ApiParam("用户信息集合") UserVo userVo){
         boolean flag = userService.registerUser(userVo);
         if(flag)
@@ -89,9 +158,10 @@ public class UserController {
     }
     @ApiOperation("切换指定ID的用户的状态（0禁用1启用）")
     @PutMapping("/user/status/{id}")
+    @RequiresPermissions("切换状态")
     public ResponseEntity<ResultBean> forbidUserById(@PathVariable Long id){
-        Optional<User> user = userService.findById(id);
-        if(user.isPresent()) {
+        User user = userService.findById(id);
+        if(user!=null) {
             RequestBean source = new RequestBean();
             ArrayList<RequestItem> sourceItems = new ArrayList<>();
             sourceItems.add(new RequestItem("id", String.valueOf(id)));
@@ -99,7 +169,7 @@ public class UserController {
             RequestBean target = new RequestBean();
             ArrayList<RequestItem> targetItems = new ArrayList<>();
             // 0为禁用
-            Byte status = user.get().getStatus();
+            Byte status = user.getStatus();
             String str = String.valueOf(status!=null && status==1?0:1);
             targetItems.add(new RequestItem("status",str));
             target.setItems(targetItems);

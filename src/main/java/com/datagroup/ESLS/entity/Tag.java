@@ -48,6 +48,8 @@ public class Tag implements Serializable {
     private String resolutionWidth;
     @Column(name = "resolutionHeight")
     private String resolutionHeight;
+    @Column(name = "isWorking")
+    private Byte isWorking;
     @ManyToOne
     @JoinColumn(name = "goodid", referencedColumnName = "id")
     private Good good;
@@ -57,12 +59,6 @@ public class Tag implements Serializable {
     @ManyToOne
     @JoinColumn(name = "routerid", referencedColumnName = "id")
     private Router router;
-    @JsonIgnore
-    @OneToMany(mappedBy = "tag")
-    private Collection<TagRouterRef> tagRouterRefs;
-    @JsonIgnore
-    @OneToMany(mappedBy = "tag")
-    private Collection<TagandGood> tagAndGoods;
     public Tag() {
     }
 }

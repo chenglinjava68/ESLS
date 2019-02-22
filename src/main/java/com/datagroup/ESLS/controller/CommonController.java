@@ -1,19 +1,17 @@
 package com.datagroup.ESLS.controller;
 
-import com.datagroup.ESLS.common.constant.FileConstant;
 import com.datagroup.ESLS.common.constant.SqlConstant;
-import com.datagroup.ESLS.common.exception.ResultEnum;
-import com.datagroup.ESLS.common.exception.TagServiceException;
 import com.datagroup.ESLS.common.response.ResultBean;
 import com.datagroup.ESLS.dao.BaseDao;
-import com.datagroup.ESLS.entity.Good;
-import com.datagroup.ESLS.utils.CopyUtil;
-import com.datagroup.ESLS.utils.FileUtil;
+import com.datagroup.ESLS.dao.SystemVersionDao;
+import com.datagroup.ESLS.entity.SystemVersion;
+import com.datagroup.ESLS.entity.SystemVersionArgs;
 import com.datagroup.ESLS.utils.PoiUtil;
 import com.datagroup.ESLS.utils.SpringContextUtil;
 import io.swagger.annotations.*;
 import org.apache.catalina.servlet4preview.http.HttpServletRequest;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +21,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.Min;
+import java.io.IOException;
 import java.io.OutputStream;
+import java.sql.Timestamp;
 import java.util.*;
 
 @Api(description = "通用工具类")
@@ -33,12 +33,17 @@ import java.util.*;
 public class CommonController {
     @Autowired
     private BaseDao baseDao;
+    @Autowired
+    private SystemVersionDao systemVersionDao;
+    @Autowired
+    private SystemVersionArgs systemVersionArgs;
 
     @ApiOperation("获取数据库表信息（0）或获取数据表的所有字段（表名,1）")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "mode", value = " 0获取所有数据库表 1获取相应表的所有字段信息", dataType = "int", paramType = "query")
     })
     @GetMapping("/common/database")
+    @RequiresPermissions("获取数据表信息")
     public ResponseEntity<ResultBean> getTableColumn(@RequestParam(required = false) @ApiParam("表名") String tableName, @RequestParam Integer mode) {
         String sql = SqlConstant.QUERY_ALL_TABLE;
         if (mode == 1)
@@ -55,6 +60,7 @@ public class CommonController {
 
     @ApiOperation(value = "导出指定条件数据库excel报表(连接符可取 =  或  like)")
     @GetMapping("/common/database/exportExcelDataFile")
+    @RequiresPermissions("导出数据库表")
     public ResponseEntity<ResultBean> getExcelByTableName(@RequestParam String tableName, @RequestParam(required = false) String query,@RequestParam(required = false) String connection,@RequestParam(required = false) String queryString,HttpServletRequest request, HttpServletResponse response) {
         List dataColumnList = baseDao.findBySql(SqlConstant.QUERY_TABLIE_COLUMN + "\'" + tableName + "\'");
         List dataList ;
@@ -80,6 +86,7 @@ public class CommonController {
 
     @ApiOperation("导出指定条件数据库csv文件(连接符可取 =  或  like)")
     @GetMapping("/common/database/exportCsvDataFile")
+    @RequiresPermissions("导出数据库表")
     public ResponseEntity<ResultBean> getCsvByTableName(@RequestParam @ApiParam("数据库表名") String tableName,  @RequestParam(required = false) String query,@RequestParam(required = false) String connection,@RequestParam(required = false) String queryString,HttpServletResponse response) {
         List dataColumnList = baseDao.findBySql(SqlConstant.QUERY_TABLIE_COLUMN + "\'" + tableName + "\'");
         List dataList ;
@@ -103,6 +110,7 @@ public class CommonController {
     }
     @ApiOperation("导入Excel数据库表")
     @PostMapping("/common/database/importExcelDataFile")
+    @RequiresPermissions("导入数据库表")
     public ResponseEntity<ResultBean> importExcelDataFile(@ApiParam(value = "文件信息", required = true) @RequestParam("file") MultipartFile file, @RequestParam @ApiParam("数据库表名") String tableName) {
         if (Objects.isNull(file) || file.isEmpty()) {
             return new ResponseEntity<>(ResultBean.error("文件为空，请重新上传"), HttpStatus.NOT_ACCEPTABLE);
@@ -113,24 +121,73 @@ public class CommonController {
     }
     @ApiOperation("导入Csv数据库表")
     @PostMapping("/common/database/importCsvDataFile")
+    @RequiresPermissions("导入数据库表")
     public ResponseEntity<ResultBean> importCsvDataFile(@ApiParam(value = "文件信息", required = true) @RequestParam("file") MultipartFile file, @RequestParam @ApiParam("数据库表名") String tableName) {
         if (Objects.isNull(file) || file.isEmpty()) {
             return new ResponseEntity<>(ResultBean.error("文件为空，请重新上传"), HttpStatus.NOT_ACCEPTABLE);
         }
         List dataColumnList = baseDao.findBySql(SqlConstant.QUERY_TABLIE_COLUMN + "\'" + tableName + "\'");
-        PoiUtil.importCsvDataFile(file,dataColumnList,tableName);
+        try {
+            PoiUtil.importCsvDataFile(file.getInputStream(),dataColumnList,tableName,0);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return new ResponseEntity<>(ResultBean.success("文件上传成功"), HttpStatus.OK);
     }
-    @ApiOperation("设置通讯命令超时时间，由于发送命令会造成http通讯阻塞，建议不超过5ms(单位为毫秒)")
+    @ApiOperation("设置命令等待时间(单位为毫秒)")
     @PutMapping("/common/command/time")
-    public ResponseEntity<ResultBean> setCommandTime(@ApiParam("设置的通讯超时时间") @RequestParam @Min(message = "data.time.min",value = 0) Integer time){
-        SpringContextUtil.setCommandTime(String.valueOf(time));
-        return new ResponseEntity<>(ResultBean.success("设置成功"),HttpStatus.OK);
+    @RequiresPermissions("设置命令参数")
+    public ResponseEntity<ResultBean> setCommandTime(@ApiParam("通讯超时时间") @RequestParam @Min(message = "data.time.min",value = 0) Integer time){
+        SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
+        systemVersion.setCommandWaitingTime(String.valueOf(time));
+        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+        SystemVersion result = systemVersionDao.save(systemVersion);
+        systemVersionArgs.init();
+        return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
     }
-    @ApiOperation("设置token存活时间(单位为秒)")
+    @ApiOperation("设置token存活时间(单位为毫秒)")
     @PutMapping("/common/token/time")
+    @RequiresPermissions("设置命令参数")
     public ResponseEntity<ResultBean> setTokenTime(@ApiParam("token存活时间") @RequestParam @Min(message = "data.time.min",value = 0) Long time){
-        SpringContextUtil.setAliveTime(time);
-        return new ResponseEntity<>(ResultBean.success("设置成功"),HttpStatus.OK);
+        SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
+        systemVersion.setTokenAliveTime(String.valueOf(time));
+        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+        SystemVersion result = systemVersionDao.save(systemVersion);
+        systemVersionArgs.init();
+        return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
+    }
+    @ApiOperation("设置命令重发次数")
+    @PutMapping("/common/command/repeatTime")
+    @RequiresPermissions("设置命令参数")
+    public ResponseEntity<ResultBean> setCommandRepeatTime(@ApiParam("命令重发次数") @RequestParam @Min(message = "data.time.min",value = 0) Long time){
+        SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
+        systemVersion.setCommandRepeatTime(String.valueOf(time));
+        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+        SystemVersion result = systemVersionDao.save(systemVersion);
+        systemVersionArgs.init();
+        return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
+    }
+    @ApiOperation("设置命令包的最大长度（不得超过220字节）")
+    @PutMapping("/common/command/packageLength")
+    @RequiresPermissions("设置命令参数")
+    public ResponseEntity<ResultBean> setPackageLength(@ApiParam("命令包的最大长度") @RequestParam @Min(message = "data.time.min",value = 0) Long time){
+        SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
+        systemVersion.setPackageLength(String.valueOf(time));
+        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+        SystemVersion result = systemVersionDao.save(systemVersion);
+        systemVersionArgs.init();
+        return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
+    }
+    @ApiOperation("设置系统版本号和开发人员")
+    @PutMapping("/common/system")
+    @RequiresPermissions("设置命令参数")
+    public ResponseEntity<ResultBean> setSystemArgs(@ApiParam("版本号") @RequestParam  String softVersion,@ApiParam("开发人员")String productor){
+        SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
+        systemVersion.setSoftVersion(softVersion);
+        systemVersion.setProductor(productor);
+        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+        SystemVersion result = systemVersionDao.save(systemVersion);
+        systemVersionArgs.init();
+        return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
     }
 }

@@ -1,71 +1,32 @@
 package com.datagroup.ESLS.entity;
 
+import lombok.Data;
+
 import javax.persistence.*;
 import java.io.Serializable;
 import java.sql.Timestamp;
-import java.util.Objects;
 
 @Entity
-@Table(name = "SystemVersion", schema = "tags", catalog = "")
+@Data
+@Table(name = "systemversion", schema = "tags", catalog = "")
 public class SystemVersion implements Serializable {
-    private long id;
-    private String softVersion;
-    private String productor;
-    private Timestamp date;
-
     @Id
     @Column(name = "id", nullable = false)
-    public long getId() {
-        return id;
-    }
+    private long id;
+    @Column(name = "softVersion")
+    private String softVersion;
+    @Column(name = "productor")
+    private String productor;
+    @Column(name = "date")
+    private Timestamp date;
 
-    public void setId(long id) {
-        this.id = id;
-    }
+    @Column(name = "tokenAliveTime")
+    private String tokenAliveTime;
+    @Column(name = "commandRepeatTime")
+    private String commandRepeatTime;
+    @Column(name = "packageLength")
+    private String packageLength;
+    @Column(name = "commandWaitingTime")
+    private String commandWaitingTime;
 
-    @Basic
-    @Column(name = "softVersion", nullable = true, length = 20)
-    public String getSoftVersion() {
-        return softVersion;
-    }
-
-    public void setSoftVersion(String softVersion) {
-        this.softVersion = softVersion;
-    }
-
-    @Basic
-    @Column(name = "productor", nullable = true, length = 255)
-    public String getProductor() {
-        return productor;
-    }
-
-    public void setProductor(String productor) {
-        this.productor = productor;
-    }
-
-    @Basic
-    @Column(name = "date", nullable = false)
-    public Timestamp getDate() {
-        return date;
-    }
-
-    public void setDate(Timestamp date) {
-        this.date = date;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SystemVersion systemVersion = (SystemVersion) o;
-        return id == systemVersion.id &&
-                Objects.equals(softVersion, systemVersion.softVersion) &&
-                Objects.equals(productor, systemVersion.productor) &&
-                Objects.equals(date, systemVersion.date);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(id, softVersion, productor, date);
-    }
 }

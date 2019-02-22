@@ -3,12 +3,15 @@ package com.datagroup.ESLS.controller;
 import com.datagroup.ESLS.aop.Log;
 import com.datagroup.ESLS.common.constant.TableConstant;
 import com.datagroup.ESLS.common.response.ResultBean;
+import com.datagroup.ESLS.dao.RoleAndPermissionDao;
 import com.datagroup.ESLS.entity.Permission;
 import com.datagroup.ESLS.entity.Role;
 import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.service.PermissionService;
+import com.datagroup.ESLS.shiro.ShiroService;
 import com.datagroup.ESLS.utils.ConditionUtil;
 import io.swagger.annotations.*;
+import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,8 +29,8 @@ public class PermissionController {
 
     @Autowired
     private PermissionService permissionService;
-//    @Autowired
-//    private FilterChainDefinitionsService filterChainDefinitionsService;
+    @Autowired
+  private ShiroService shiroService;
     @ApiOperation(value = "根据条件获取权限信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = " 查询条件 可为所有字段", dataType = "String", paramType = "query"),
@@ -37,6 +40,7 @@ public class PermissionController {
     })
     @GetMapping("/permissions")
     @Log("获取权限数据")
+    @RequiresPermissions("系统菜单")
     public ResponseEntity<ResultBean> getPermissions(@RequestParam(required = false) String query, @RequestParam(required = false) String queryString, @Min(message = "data.page.min", value = 0)@RequestParam(required = false) Integer page, @Min(message = "data.count.min", value = 0) @RequestParam(required = false) Integer count) {
         String result = ConditionUtil.judgeArgument(query, queryString, page, count);
         if(result==null)
@@ -68,6 +72,7 @@ public class PermissionController {
     @ApiOperation(value = "获取指定ID的权限信息")
     @GetMapping("/permission/{id}")
     @Log("获取指定ID的权限信息")
+    @RequiresPermissions("获取指定ID的信息")
     public ResponseEntity<ResultBean> getPermissionById(@PathVariable Long id) {
         Optional<Permission> result = permissionService.findById(id);
         if (result.isPresent()) {
@@ -79,16 +84,18 @@ public class PermissionController {
     @ApiOperation(value = "添加或修改权限信息")
     @PostMapping("/permission")
     @Log("添加或修改权限信息")
+    @RequiresPermissions("添加或修改信息")
     public ResponseEntity<ResultBean> savePermission(@ApiParam(value = "权限信息描述") @RequestParam String name,@ApiParam(value = "权限信息url") @RequestParam String url) {
         Permission permission = new Permission(name,url);
         Permission result = permissionService.saveOne(permission);
-//        filterChainDefinitionsService.updatePermission();
+       shiroService.updatePermission();
         return new ResponseEntity<>(new ResultBean(result),HttpStatus.OK);
     }
 
     @ApiOperation(value = "根据ID删除权限信息")
     @DeleteMapping("/permission/{id}")
     @Log("根据ID删除权限信息")
+    @RequiresPermissions("删除指定ID的信息")
     public ResponseEntity<ResultBean> deletePermissionById(@PathVariable Long id) {
         List<Long> idList = new ArrayList<>();
         idList.add(id);

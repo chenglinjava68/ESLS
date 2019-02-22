@@ -107,8 +107,14 @@ public class SqlConstant {
         EntityToSqlMap.put("tags", "Tag");
         EntityToSqlMap.put("routers", "Router");
         EntityToSqlMap.put("logs", "Logs");
-        EntityToSqlMap.put("scans", "Scan");
         EntityToSqlMap.put("users", "User");
         EntityToSqlMap.put("dispms", "Dispms");
+        EntityToSqlMap.put("cyclejobs", "CycleJob");
+        EntityToSqlMap.put("permission", "Permission");
+        EntityToSqlMap.put("role", "Role");
+        EntityToSqlMap.put("role_permission", "RolePermission");
+        EntityToSqlMap.put("shops", "Shop");
+        EntityToSqlMap.put("styles", "Style");
+        EntityToSqlMap.put("systemversion", "SystemVersion");
     }
 }

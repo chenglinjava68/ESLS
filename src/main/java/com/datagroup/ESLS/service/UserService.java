@@ -9,9 +9,12 @@ import java.util.List;
 import java.util.Optional;
 
 public interface UserService extends Service{
+    List<User> findAll();
+    List<User> findAll(Integer page, Integer count);
+    boolean deleteById(Long id);
     List<Permission> findPermissionByUserId(Long userId);
     List<Role> findRolesByUserId(Long userId);
     User findByName(String name);
-    Optional<User> findById(Long id);
+    User findById(Long id);
     boolean registerUser(UserVo userVo);
 }

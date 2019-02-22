@@ -1,6 +1,7 @@
 package com.datagroup.ESLS.utils;
 
 import com.datagroup.ESLS.dto.TagsAndRouter;
+import com.datagroup.ESLS.entity.SystemVersionArgs;
 import com.datagroup.ESLS.netty.client.NettyClient;
 import com.datagroup.ESLS.netty.command.CommandConstant;
 import com.datagroup.ESLS.netty.server.ServerChannelHandler;
@@ -22,10 +23,10 @@ public class NettyUtil{
             NettyClient nettyClient = new NettyClient(channel, message);
             Future future = executorService.submit(nettyClient);
             long begin = System.currentTimeMillis();
+            Integer commandWaitingTime = Integer.valueOf(SystemVersionArgs.commandWaitingTime);
             while(!future.isDone()){
                 long end = System.currentTimeMillis();
-                //System.out.println(end - begin+"ms");
-                if((end - begin)>6000) {
+                if((end - begin)> commandWaitingTime) {
                     System.out.println("NettyUtil--sendMessage : 命令没有响应");
                     ServerChannelHandler serverChannelHandler = SpringContextUtil.serverChannelHandler;
                     System.out.println("startAndWrite 开始："+serverChannelHandler.getMapSize());
