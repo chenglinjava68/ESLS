@@ -1,5 +1,6 @@
 package com.datagroup.ESLS.serviceImpl;
 
+import com.datagroup.ESLS.common.exception.ResultEnum;
 import com.datagroup.ESLS.common.exception.TagServiceException;
 import com.datagroup.ESLS.cycleJob.DynamicTask;
 import com.datagroup.ESLS.common.constant.ArrtributeConstant;
@@ -45,7 +46,6 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
             Channel channel = SpringContextUtil.getChannelByRouter(tag.getRouter().getId());
 //            if(channel==null)
 //                throw new TagServiceException(ResultEnum.COMMUNITICATION_ERROR);
-            System.out.println(dispmses.size());
             List<Dispms> dispmsesList = new ArrayList<>();
             Good good = tag.getGood();
             String regionNames = good.getRegionNames();
@@ -257,7 +257,7 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
                 // 多线程并行发送命令
                 tag.setState((byte) 1);
                 String contentType = CommandConstant.TAGBIND;
-//                ResponseBean responseBean = SendCommandUtil.sendCommandWithTags(tags, contentType, CommandConstant.COMMANDTYPE_TAG);
+                ResponseBean responseBean = SendCommandUtil.sendCommandWithTags(tags, contentType, CommandConstant.COMMANDTYPE_TAG);
 //                if(responseBean.getSuccessNumber()==0)
 //                    throw new TagServiceException(ResultEnum.GOOD_TAG_BIND_ERROR);
                 SendCommandUtil.updateTagStyle(tags);

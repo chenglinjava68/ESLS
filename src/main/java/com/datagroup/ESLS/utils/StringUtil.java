@@ -1,6 +1,7 @@
 package com.datagroup.ESLS.utils;
 
 import com.datagroup.ESLS.entity.Dispms;
+import com.datagroup.ESLS.entity.Good;
 import org.apache.commons.lang3.StringUtils;
 
 public class StringUtil {
@@ -16,19 +17,24 @@ public class StringUtil {
     public static boolean isEmpty(String value){
         return StringUtils.isEmpty(value)  || value.contains("null");
     }
-    public static String getRealString(Dispms dispM){
+    public static String getRealString(Dispms dispM, Good good){
         StringBuffer sb = new StringBuffer();
         if(!isEmpty(dispM.getStartText())){
             sb.append(dispM.getStartText());
         }
-        if(!isEmpty(dispM.getText())){
-            String text = dispM.getText();
+        // 为与商品有关字段
+        if(!dispM.getSourceColumn().equals("0")){
+            String text = SpringContextUtil.getSourceData(dispM.getSourceColumn(),good);
             if(dispM.getColumnType().equals(NUMBER_LEFT)) {
                 String left = text.substring(0,text.indexOf(".")+1);
                 sb.append(left);
             }
             else
                 sb.append(text);
+        }
+        // 为与商品无关字段
+        else if(!isEmpty(dispM.getText())){
+            sb.append(dispM.getText());
         }
         if(!isEmpty(dispM.getEndText())){
             sb.append(dispM.getEndText());

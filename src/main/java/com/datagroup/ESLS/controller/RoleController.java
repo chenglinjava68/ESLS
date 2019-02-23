@@ -136,13 +136,14 @@ public class RoleController {
                     sum++;
                 }
             }
+
         }
-//        filterChainDefinitionsService.updatePermission();
+        shiroService.updatePermission();
         return new ResponseEntity<>(ResultBean.success(new ResponseBean(longList.size(),sum)), HttpStatus.OK);
     }
     @ApiOperation("为指定ID的用户添加角色")
     @PutMapping("/role/addRole/{id}")
-    public ResponseEntity<ResultBean> addUserAndRole(@PathVariable Long id,@RequestParam @ApiParam("角色信息ID集合") List<Long> longList) {
+    public ResponseEntity<ResultBean> addUserAndRole(@PathVariable Long id,@RequestBody @ApiParam("角色信息ID集合") List<Long> longList) {
         int sum = 0;
         User user = userService.findById(id);
         if(user==null) {

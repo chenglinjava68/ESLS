@@ -10,6 +10,6 @@ import org.springframework.transaction.annotation.Transactional;
 public interface UserAndRoleDao extends JpaRepository<UserRole,Long> {
     @Transactional
     @Modifying
-    @Query(value = "INSERT INTO user_role(role_id,user_id) SELECT :role_id , :user_id FROM DUAL WHERE NOT EXISTS(SELECT * FROM user_role b WHERE b.role_id=:role_id AND b.user_id=:user_id)",nativeQuery = true)
-    Integer insertByCondition(@Param("role_id") Long role_id,@Param("user_id") Long user_id);
+    @Query(value = "INSERT INTO user_role(roleId,userId) SELECT :roleId , :userId FROM DUAL WHERE NOT EXISTS(SELECT * FROM user_role b WHERE b.roleId=:roleId AND b.userId=:userId)",nativeQuery = true)
+    Integer insertByCondition(@Param("roleId") Long roleId,@Param("userId") Long userId);
 }

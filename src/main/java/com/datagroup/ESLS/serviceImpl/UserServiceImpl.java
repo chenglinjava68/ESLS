@@ -66,10 +66,10 @@ public class UserServiceImpl extends BaseServiceImpl implements UserService {
     }
 
     @Override
-    public boolean registerUser(UserVo userVo) {
+    public User registerUser(UserVo userVo) {
         User u = findByName(userVo.getName());
         if(u!=null)
-            return false;
+            return null;
         else{
             User user = new User();
             BeanUtils.copyProperties(userVo, user);
@@ -80,8 +80,7 @@ public class UserServiceImpl extends BaseServiceImpl implements UserService {
             // 非禁用
             user.setStatus((byte) 1);
             user.setCreateTime(new Timestamp(System.currentTimeMillis()));
-            userDao.save(user);
-            return true;
+            return userDao.save(user);
         }
     }
 }

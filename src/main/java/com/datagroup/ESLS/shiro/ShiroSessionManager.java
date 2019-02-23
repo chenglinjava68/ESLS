@@ -18,7 +18,7 @@ import java.io.Serializable;
  **/
 public class ShiroSessionManager extends DefaultWebSessionManager {
 
-    private static final String AUTHORIZATION = "X-ESLS-TOKEN";
+    private static final String AUTHORIZATION = "ESLS";
 
     private static final String REFERENCED_SESSION_ID_SOURCE = "Stateless request";
 
@@ -35,6 +35,7 @@ public class ShiroSessionManager extends DefaultWebSessionManager {
             System.out.println("super："+super.getSessionId(request, response));
             return super.getSessionId(request, response);
         }else{
+            System.out.println("含有Header");
             //如果请求头中有 authToken 则其值为sessionId
             request.setAttribute(ShiroHttpServletRequest.REFERENCED_SESSION_ID_SOURCE,REFERENCED_SESSION_ID_SOURCE);
             request.setAttribute(ShiroHttpServletRequest.REFERENCED_SESSION_ID,id);

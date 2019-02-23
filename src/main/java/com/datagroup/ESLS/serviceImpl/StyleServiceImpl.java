@@ -71,6 +71,41 @@ public class StyleServiceImpl extends BaseServiceImpl implements StyleService {
         }
         return responseBean;
     }
+
+    @Override
+    public ResponseBean newStyleById(long styleId, List<Dispms> dispms, Style style,Integer mode) {
+        int sum = dispms.size();
+        int successnumber = 0;
+        // 0添加
+        if(mode == 0) {
+            for (Dispms dispm : dispms) {
+                try {
+                    if(dispm.getId()!=0)
+                        continue;
+                    dispm.setStyle(style);
+                    dispmsDao.save(dispm);
+                    successnumber++;
+                } catch (Exception e) {
+                    System.out.println("StyleService - updateStyleById : " + e);
+                }
+            }
+            return new ResponseBean(sum,successnumber);
+        }
+        // 1修改
+        else{
+            List<Long> dispmIds = new ArrayList<>();
+            for (Dispms dispm : dispms) {
+                try {
+                    if(dispm.getId()==0)
+                        continue;
+                    dispmIds.add(dispm.getId());
+                } catch (Exception e) {
+                    System.out.println("StyleService - updateStyleById : " + e);
+                }
+            }
+            return updateStyleById(styleId,dispmIds,style);
+        }
+    }
     // 样式更改
     @Override
     public ResponseBean updateStyleById(long styleId, List<Long> dispmIds,Style style) {
@@ -91,7 +126,7 @@ public class StyleServiceImpl extends BaseServiceImpl implements StyleService {
         List<Tag> tags = findByArrtribute(TableConstant.TABLE_TAGS, ArrtributeConstant.TAG_STYLEID, String.valueOf(styleId), Tag.class);
         // 通过标签实体的路由器IP地址发送更改标签内容包
         SendCommandUtil.updateTagStyle(tags);
-        return  new ResponseBean(sum,successnumber);
+        return new ResponseBean(sum,successnumber);
     }
 
     @Override

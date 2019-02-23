@@ -16,5 +16,5 @@ public interface UserService extends Service{
     List<Role> findRolesByUserId(Long userId);
     User findByName(String name);
     User findById(Long id);
-    boolean registerUser(UserVo userVo);
+    User registerUser(UserVo userVo);
 }

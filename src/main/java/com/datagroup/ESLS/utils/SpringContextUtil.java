@@ -9,12 +9,12 @@ import com.datagroup.ESLS.entity.*;
 import com.datagroup.ESLS.netty.server.ServerChannelHandler;
 import com.datagroup.ESLS.service.RouterService;
 import io.netty.channel.Channel;
+import org.apache.commons.io.FileUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
-import java.awt.*;
-import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
@@ -24,7 +24,8 @@ import java.util.List;
 @Component
 public class SpringContextUtil implements ApplicationContextAware {
     private static ApplicationContext applicationContext;
-    public static ByteResponse getRequest(List<Dispms> dispms,String styleNumber,Good good){
+    public static ByteResponse getRequest(List<Dispms> dispms,String styleNumber,Good good) throws IOException {
+        FileUtils.deleteDirectory(new File("D:\\styles\\"+styleNumber));
         List<byte[]> allbyteList = new ArrayList<>();
         byte[] firstByte = new byte[3+6+dispms.size()*12];
         int i,j;
@@ -38,10 +39,8 @@ public class SpringContextUtil implements ApplicationContextAware {
         for (i = 0; i < dispms.size(); i++) {
             try {
                 Dispms region = dispms.get(i);
-                if (good != null)
-                    region = ImageHelper.getText(region, good);
                 System.out.println(region.getColumnType() + " " + region.getX() + " " + region.getY() + " " + region.getWidth() + " " + region.getHeight());
-                ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber);
+                ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
                 region = byteAndRegion.getRegion();
                 byte[] regionImage = byteAndRegion.getRegionBytes();
                 System.out.println(region.getColumnType() + " " + region.getX() + " " + region.getY() + " " + region.getWidth() + " " + region.getHeight());
@@ -65,7 +64,7 @@ public class SpringContextUtil implements ApplicationContextAware {
                     width = int2ByteArr(region.getWidth());
                     height = int2ByteArr(region.getHeight());
                     x = int2ByteArr(region.getX());
-                    y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber) - region.getY());
+                    y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber) - region.getY()-region.getHeight());
                     // x
                     firstByte[(i * 12) + 11] = y[1];
                     firstByte[(i * 12) + 12] = y[0];
@@ -110,7 +109,7 @@ public class SpringContextUtil implements ApplicationContextAware {
             if(good!=null)
                 region = ImageHelper.getText(region,good);
             System.out.println(region.getColumnType()+" " +region.getX() + " "+region.getY()+" "+region.getWidth()+" "+region.getHeight());
-            ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber);
+            ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
             region = byteAndRegion.getRegion();
             byte[] regionImage = byteAndRegion.getRegionBytes();
             System.out.println(region.getColumnType()+" "+region.getX() + " "+region.getY()+" "+region.getWidth()+" "+region.getHeight());
@@ -135,7 +134,7 @@ public class SpringContextUtil implements ApplicationContextAware {
                 width = int2ByteArr(region.getWidth());
                 height = int2ByteArr(region.getHeight());
                 x = int2ByteArr(region.getX());
-                y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber)-region.getY());
+                y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber)-region.getY()-region.getHeight());
                 // x
                 firstByte[(i*12)+11] =  y[1];
                 firstByte[(i*12)+12] =  y[0];
@@ -232,14 +231,14 @@ public class SpringContextUtil implements ApplicationContextAware {
         }
         return byteList;
     }
-    public static ByteAndRegion getRegionImage(Dispms dispM, String styleNumber) {
+    public static ByteAndRegion getRegionImage(Dispms dispM, String styleNumber,Good good) {
         try {
             FileUtil.createFileIfNotExist("D:\\styles\\",styleNumber);
             String columnType = dispM.getColumnType();
             if(!ImageHelper.getImageType(columnType))
-                return ImageHelper.getImageByType1(dispM,styleNumber);
+                return ImageHelper.getImageByType1(dispM,styleNumber,good);
             else
-                return ImageHelper.getImageByType2(dispM,styleNumber);
+                return ImageHelper.getImageByType2(dispM,styleNumber,good);
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -475,24 +474,6 @@ public class SpringContextUtil implements ApplicationContextAware {
                 return i+1;
         }
         return 0;
-    }
-    public static BufferedImage createBufferedImage(int width, int height) throws IOException {
-        // 单色位图
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_BINARY);
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++)
-                bufferedImage.setRGB(i, j, Color.WHITE.getRGB());
-        }
-        return bufferedImage;
-    }
-    public static BufferedImage createBackgroundImage(int width, int height) throws IOException {
-        // 单色位图
-        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_BINARY);
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++)
-                bufferedImage.setRGB(i, j, Color.BLACK.getRGB());
-        }
-        return bufferedImage;
     }
     public static Map<String, Channel> channelIdGroup = new HashMap();
     public static ServerChannelHandler serverChannelHandler;

@@ -21,7 +21,7 @@ public class GoodVo {
     private Integer status;
     private double price;
     private double promotePrice;
-    private byte[] photo;
+    private String imageUrl;
     private Integer waitUpdate;
     private String shelfNumber;
     private String spec;
@@ -31,5 +31,6 @@ public class GoodVo {
     private String rfus01;
     private String rfus02;
     private String regionNames;
+    private String stock;
     private List<Long> tagIdList = new ArrayList<>();
 }

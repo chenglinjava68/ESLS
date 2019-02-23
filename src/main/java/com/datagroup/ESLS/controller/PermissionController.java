@@ -2,8 +2,10 @@ package com.datagroup.ESLS.controller;
 
 import com.datagroup.ESLS.aop.Log;
 import com.datagroup.ESLS.common.constant.TableConstant;
+import com.datagroup.ESLS.common.response.ResponseBean;
 import com.datagroup.ESLS.common.response.ResultBean;
 import com.datagroup.ESLS.dao.RoleAndPermissionDao;
+import com.datagroup.ESLS.dao.RoleDao;
 import com.datagroup.ESLS.entity.Permission;
 import com.datagroup.ESLS.entity.Role;
 import com.datagroup.ESLS.entity.Tag;
@@ -30,7 +32,9 @@ public class PermissionController {
     @Autowired
     private PermissionService permissionService;
     @Autowired
-  private ShiroService shiroService;
+    private RoleDao roleDao;
+    @Autowired
+    private ShiroService shiroService;
     @ApiOperation(value = "根据条件获取权限信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = " 查询条件 可为所有字段", dataType = "String", paramType = "query"),
@@ -88,7 +92,7 @@ public class PermissionController {
     public ResponseEntity<ResultBean> savePermission(@ApiParam(value = "权限信息描述") @RequestParam String name,@ApiParam(value = "权限信息url") @RequestParam String url) {
         Permission permission = new Permission(name,url);
         Permission result = permissionService.saveOne(permission);
-       shiroService.updatePermission();
+        shiroService.updatePermission();
         return new ResponseEntity<>(new ResultBean(result),HttpStatus.OK);
     }
 
@@ -104,5 +108,15 @@ public class PermissionController {
         if (flag)
             return new ResponseEntity<>(ResultBean.success("删除成功"), HttpStatus.OK);
         return new ResponseEntity<>(ResultBean.success("删除失败！没有指定ID的权限"), HttpStatus.BAD_REQUEST);
+    }
+    @ApiOperation("根据角色ID获得用户权限")
+    @GetMapping("/permission/role/{id}")
+    public ResponseEntity<ResultBean> getPermissionByRoleId(@PathVariable Long id) {
+        Role role = roleDao.findById(id).get();
+        if(role!=null){
+            return new ResponseEntity<>(ResultBean.success(role.getPermissions()), HttpStatus.OK);
+        }
+        else
+            return new ResponseEntity<>(ResultBean.error("不存在此用户"), HttpStatus.BAD_REQUEST);
     }
 }

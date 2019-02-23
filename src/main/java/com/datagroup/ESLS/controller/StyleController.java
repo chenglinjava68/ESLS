@@ -8,13 +8,13 @@ import com.datagroup.ESLS.common.constant.ArrtributeConstant;
 import com.datagroup.ESLS.common.constant.TableConstant;
 import com.datagroup.ESLS.common.response.ResultBean;
 import com.datagroup.ESLS.entity.Dispms;
+import com.datagroup.ESLS.entity.Good;
 import com.datagroup.ESLS.entity.Style;
 import com.datagroup.ESLS.service.DispmsService;
+import com.datagroup.ESLS.service.GoodService;
 import com.datagroup.ESLS.service.StyleService;
 import com.datagroup.ESLS.service.TagService;
-import com.datagroup.ESLS.utils.ConditionUtil;
-import com.datagroup.ESLS.utils.CopyUtil;
-import com.datagroup.ESLS.utils.ResponseUtil;
+import com.datagroup.ESLS.utils.*;
 import io.swagger.annotations.*;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.BeanUtils;
@@ -26,8 +26,10 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,6 +42,8 @@ public class StyleController {
     private StyleService styleService;
     @Autowired
     private DispmsService dispmsService;
+    @Autowired
+    private GoodService goodService;
 
     @ApiOperation(value = "根据条件获取样式信息")
     @ApiImplicitParams({
@@ -134,7 +138,7 @@ public class StyleController {
     }
 
     @ApiOperation(value = "更改指定ID样式的小样式")
-    @PostMapping("/sytle/update")
+    @PostMapping("/style/update")
     @Log("更改指定ID样式的小样式")
     public ResponseEntity<ResultBean> updateStyleById(@RequestParam long styleId, @RequestBody @ApiParam(value = "样式信息Id List格式") List<Long> dispmIds) {
         List<Style> styleList = dispmsService.findByArrtribute(TableConstant.TABLE_STYLE, ArrtributeConstant.TABLE_ID, String.valueOf(styleId), Style.class);
@@ -145,6 +149,19 @@ public class StyleController {
         // 返回前端提示信息
         return new ResponseEntity<>(ResultBean.success(styleService.updateStyleById(styleId,dispmIds,styleList.get(0))), HttpStatus.OK);
     }
+    @ApiOperation(value = "新建样式同时绑定小样式")
+    @PostMapping("/style/new")
+    @Log("新建样式同时绑定小样式")
+    @ApiImplicitParam(name = "mode", value = "0为添加 1为修改", dataType = "int", paramType = "query")
+    public ResponseEntity<ResultBean> newStyleById(@RequestParam long styleId, @RequestBody @ApiParam(value = "样式信息JSON格式") List<Dispms> dispms,@RequestParam Integer mode) {
+        List<Style> styleList = dispmsService.findByArrtribute(TableConstant.TABLE_STYLE, ArrtributeConstant.TABLE_ID, String.valueOf(styleId), Style.class);
+        if(styleList==null || styleList.size()==0)
+            return new ResponseEntity<>(ResultBean.error("没有指定的样式,请先添加样式"), HttpStatus.BAD_REQUEST);
+        ResponseEntity<ResultBean> result ;
+        if ((result = ResponseUtil.testListSize("没有对应ID的样式", styleList)) != null) return result;
+        // 返回前端提示信息
+        return new ResponseEntity<>(ResultBean.success(styleService.newStyleById(styleId,dispms,styleList.get(0),mode)), HttpStatus.OK);
+    }
     @ApiOperation(value = "刷新选用该样式的标签或设置定期刷新",notes = "定期刷新才需加beginTime和cycleTime字段")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "mode", value = " 0为刷新选用该样式的标签 1定期刷新", dataType = "int", paramType = "query")
@@ -153,5 +170,28 @@ public class StyleController {
     @Log("刷新选用该样式的标签或设置定期刷新")
     public ResponseEntity<ResultBean> flushTags(@RequestBody @ApiParam("样式集合") RequestBean requestBean,@RequestParam  @Min(message = "data.page.min", value = 0)  @Max(message = "data.mode.max", value = 1) Integer mode){
         return new  ResponseEntity<>(new ResultBean(styleService.flushTags(requestBean,mode)),HttpStatus.OK);
+    }
+    @ApiOperation("生成指定ID样式的所有小样式图片")
+    @GetMapping("/style/photo/{id}")
+    @Log("生成指定ID样式的所有小样式图片")
+    public ResponseEntity<ResultBean> creatStyle(@PathVariable long id,@RequestParam Long goodId){
+        Style style= styleService.findById(id).get();
+        Good good = goodService.findById(goodId);
+        Collection<Dispms> dispmses = style.getDispmses();
+        for(Dispms dispms : dispmses) {
+            Dispms temp =ImageHelper.getText(dispms, good);
+            SpringContextUtil.getRegionImage(temp, style.getStyleNumber(),good);
+        }
+        return new  ResponseEntity<>(ResultBean.success("成功"),HttpStatus.OK);
+    }
+    @ApiOperation("生成指定ID样式的所有小样式图片")
+    @GetMapping("/style/dism/photo/{id}")
+    @Log("生成指定ID样式的所有小样式图片")
+    public ResponseEntity<ResultBean> creatDism(@PathVariable long id,@RequestParam Long goodId,@RequestParam String styleNumber){
+        Dispms dispms= dispmsService.findById(id).get();
+        Good good = goodService.findById(goodId);
+        Dispms temp =ImageHelper.getText(dispms, good);
+        SpringContextUtil.getRegionImage(temp, styleNumber,good);
+        return new  ResponseEntity<>(ResultBean.success("成功"),HttpStatus.OK);
     }
 }

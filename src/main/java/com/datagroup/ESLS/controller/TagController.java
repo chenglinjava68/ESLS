@@ -174,7 +174,7 @@ public class TagController {
             @ApiImplicitParam(name = "tagId", value = "标签ID", required = true, dataType = "long", paramType = "query"),
             @ApiImplicitParam(name = "styleId", value = "需更改的目标样式ID", required = true, dataType = "long", paramType = "query"),
     })
-    @PutMapping("/tag/sytle")
+    @PutMapping("/tag/style")
     @Log("标签更换样式")
     public ResponseEntity<ResultBean> updateTagStyleById(@RequestParam long tagId, @RequestParam long styleId) {
         return tagService.updateTagStyleById(tagId,styleId);

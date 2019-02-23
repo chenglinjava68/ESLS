@@ -52,4 +52,9 @@ public class FileUtil {
         multipartFile.transferTo(localFile);
         return localFile;
     }
+    public static File creatTempFile() throws IOException {
+        File localFile;
+        localFile = File.createTempFile("temp",null);
+        return localFile;
+    }
 }

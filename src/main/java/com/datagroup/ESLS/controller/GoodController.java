@@ -142,7 +142,7 @@ public class GoodController {
     }
     @ApiOperation("设置商品基本数据和商品变价文件路径及cron表达式（定期任务）")
     @GetMapping("/good/schedule")
-    @Log("通过商品ID获取其绑定的所有标签信息")
+    @Log("设置商品基本数据和商品变价文件路径及cron表达式（定期任务）")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "cron", value = "cron表达式 ", dataType = "String", paramType = "query"),
             @ApiImplicitParam(name = "rootFilePath", value = "文件根路径", dataType = "String", paramType = "query"),

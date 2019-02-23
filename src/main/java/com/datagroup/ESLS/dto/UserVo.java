@@ -13,8 +13,6 @@ public class UserVo {
     private String telephone;
     private String address;
     private String department;
-    private Timestamp createTime;
-    private Timestamp lastLoginTime;
     private Byte status;
     private long shopId;
     private String roleList;

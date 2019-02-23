@@ -3,6 +3,7 @@ package com.datagroup.ESLS;
 import com.datagroup.ESLS.common.constant.SqlConstant;
 import com.datagroup.ESLS.dto.ByteAndRegion;
 import com.datagroup.ESLS.entity.*;
+import com.datagroup.ESLS.graphic.BarcodeUtil;
 import com.datagroup.ESLS.netty.command.CommandCategory;
 import com.datagroup.ESLS.netty.command.ProtocolConstant;
 import com.datagroup.ESLS.dao.*;
@@ -85,14 +86,13 @@ public class ESLSApplicationTests {
 
     @Test
     public void testRedisKeys() {
-        Collection<Dispms> dispmses = styleService.findById((long) 17).get().getDispmses();
-        for(Dispms region: dispmses) {
-            SpringContextUtil.getRegionImage(region, "2901");
-        }
+        String msg = "123456789";
+        String path = "barcode.png";
+        BarcodeUtil.generateFile(msg, path);
     }
 
     @Test
-    public void testNettyClient() throws IOException {
+    public void testNettyClient() throws Exception {
     }
 
     @Test

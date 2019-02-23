@@ -1,6 +1,7 @@
 package com.datagroup.ESLS.entity;
 
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -32,6 +33,7 @@ public class Role {
     // 一个角色对应多个用户
     @ManyToMany
     @JoinTable(name="user_role",joinColumns={@JoinColumn(name="roleId")},inverseJoinColumns={@JoinColumn(name="userId")})
+    @JsonIgnore
     private List<User> users;
 
     @Override

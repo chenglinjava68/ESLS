@@ -6,6 +6,7 @@ import com.datagroup.ESLS.dto.ByteAndRegion;
 import com.datagroup.ESLS.entity.Dispms;
 import com.datagroup.ESLS.entity.Good;
 import com.datagroup.ESLS.graphic.BarCode;
+import com.datagroup.ESLS.graphic.BarcodeUtil;
 import com.datagroup.ESLS.graphic.QRCode;
 import com.datagroup.ESLS.service.DispmsService;
 import com.datagroup.ESLS.service.GoodService;
@@ -17,6 +18,7 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -25,7 +27,11 @@ import java.net.URL;
 import java.util.List;
 
 public class ImageHelper {
-    public static ByteAndRegion getImageByType1(Dispms dispM,String styleNumber) throws Exception {
+    public static ByteAndRegion getImageByType1(Dispms dispM,String styleNumber,Good good) throws Exception {
+        DispmsService dispmsService = (DispmsService) SpringContextUtil.getBean("DispmsService");
+        Dispms returnDispms = new Dispms();
+        BeanUtils.copyProperties(dispM,returnDispms);
+        returnDispms.setId(0);
         // 宽 高 columnType backgroundColor fontColor（非文字）
         String columnType = dispM.getColumnType();
         int imageWidth = dispM.getWidth(),imageHeight = dispM.getHeight();
@@ -35,9 +41,9 @@ public class ImageHelper {
         else{
             imageHeight = get8Number(imageHeight);
         }
-        dispM.setWidth(imageWidth);
-        dispM.setHeight(imageHeight);
-        BufferedImage bufferedImage = SpringContextUtil.createBufferedImage(imageWidth, imageHeight);
+        returnDispms.setWidth(imageWidth);
+        returnDispms.setHeight(imageHeight);
+        BufferedImage bufferedImage = createBufferedImage(imageWidth, imageHeight);
         Graphics2D g2d = (Graphics2D) bufferedImage.getGraphics();
         // 背景
         g2d.setColor(ColorUtil.getColorByInt(dispM.getBackgroundColor()));
@@ -49,17 +55,27 @@ public class ImageHelper {
         }
         // 条形码
         else if (dispM.getColumnType().contains(StringUtil.BARCODE) ) {
+//            byte[] bytes = ImageHelper.ChangeImgSize( BarcodeUtil.generateFile(dispM.getText()), imageWidth, imageHeight);
+//            // bytes转image
+//            ByteArrayInputStream in = new ByteArrayInputStream(bytes);
+//            BufferedImage image = ImageIO.read(in);
             BufferedImage image= BarCode.encode(dispM.getText(), imageWidth, imageHeight );
             g2d.drawImage(image,0,0,null);
-
         }
         // 线段
         else if(columnType.contains(StringUtil.LINE) ) {
+            String result = SpringContextUtil.getSourceData("name", good);
+            Dispms name = dispmsService.findByStyleIdAndColumnTypeAndSourceColumn(dispM.getStyle().getId(), StringUtil.Str, "name");
+            int fontType = ColorUtil.getFontType(name.getFontType());
+            String[] leftArgs = ImageHelper.getWidthAndHeight(name.getFontFamily(), fontType, name.getFontSize(),StringUtil.Str, result);
+            returnDispms.setY(Integer.valueOf(leftArgs[1]));
+            bufferedImage = createBackgroundImage(imageWidth, imageHeight);
+            g2d = (Graphics2D) bufferedImage.getGraphics();
             g2d.drawLine(0,imageHeight,imageWidth,imageHeight);
         }
         // 背景
         else if(columnType.contains(StringUtil.BACKGROUND)){
-            bufferedImage = SpringContextUtil.createBackgroundImage(imageWidth, imageHeight);
+            bufferedImage = createBackgroundImage(imageWidth, imageHeight);
         }
         // 图片
         else if(columnType.contains(StringUtil.PHOTO)){
@@ -73,10 +89,13 @@ public class ImageHelper {
             ByteArrayInputStream in = new ByteArrayInputStream(bytes);
             bufferedImage = ImageIO.read(in);
         }
-        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\"+styleNumber+"\\"+dispM.getId()+columnType+"("+dispM.getX()+" "+dispM.getY()+" "+dispM.getWidth()+" "+dispM.getHeight()+").bmp"));
-        return new ByteAndRegion(changeImage(bufferedImage,styleNumber),dispM);
+        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\"+styleNumber+"\\"+dispM.getId()+columnType+" (x"+returnDispms.getX()+" y"+returnDispms.getY()+" w"+returnDispms.getWidth()+" h"+returnDispms.getHeight()+").bmp"));
+        return new ByteAndRegion(changeImage(bufferedImage,styleNumber),returnDispms);
     }
-    public static ByteAndRegion getImageByType2(Dispms dispM,String styleNumber) throws Exception {
+    public static ByteAndRegion getImageByType2(Dispms dispM,String styleNumber,Good good) throws Exception {
+        Dispms returnDispms = new Dispms();
+        BeanUtils.copyProperties(dispM,returnDispms);
+        returnDispms.setId(0);
         // 文本宽 高 columnType backgroundColor fontColor（非文字）
         DispmsService dispmsService = (DispmsService) SpringContextUtil.getBean("DispmsService");
         String columnType = dispM.getColumnType();
@@ -84,7 +103,7 @@ public class ImageHelper {
         int imageWidth,imageHeight ,imageAscent;
         Boolean flag = ColorUtil.isRedAndBlack(dispM.getBackgroundColor(), dispM.getFontColor());
         // 以下为含字符串或数字
-        String s = StringUtil.getRealString(dispM);
+        String s = StringUtil.getRealString(dispM,good);
         String[] args = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, dispM.getFontSize(),columnType, s);
         imageWidth = Integer.valueOf(args[0]);
         imageHeight = Integer.valueOf(args[1]);
@@ -95,9 +114,9 @@ public class ImageHelper {
         else{
             imageHeight = get8Number(imageHeight);
         }
-        dispM.setWidth(imageWidth);
-        dispM.setHeight(imageHeight);
-        BufferedImage bufferedImage = SpringContextUtil.createBufferedImage(imageWidth, imageHeight);
+        returnDispms.setWidth(imageWidth);
+        returnDispms.setHeight(imageHeight);
+        BufferedImage bufferedImage = createBufferedImage(imageWidth, imageHeight);
         Graphics2D g2d = (Graphics2D) bufferedImage.getGraphics();
         // (红黑) 0红黑 1白 背景色
         g2d.setColor(ColorUtil.getColorByInt(dispM.getBackgroundColor()));
@@ -115,9 +134,14 @@ public class ImageHelper {
         // 数字右侧
         else if(columnType.contains(StringUtil.NUMBER_RIGHT)){
             Dispms left = dispmsService.findByStyleIdAndColumnTypeAndSourceColumn(dispM.getStyle().getId(), StringUtil.NUMBER_LEFT, dispM.getSourceColumn());
-            dispM.setX(left.getX()+left.getWidth());
+            String[] leftArgs = ImageHelper.getWidthAndHeight(left.getFontFamily(), fontType, left.getFontSize(),StringUtil.NUMBER_LEFT, s);
+            if(ImageHelper.getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40))
+                returnDispms.setX(left.getX()+get8Number(Integer.valueOf(leftArgs[0])));
+            else {
+                returnDispms.setX(left.getX() + Integer.valueOf(leftArgs[0]));
+            }
             String right = s.substring(s.indexOf(".")+1);
-            String backup = dispM.getBackup();
+            String backup = dispM.getBackup().split("/")[0];
             if(backup.equals("1"))
                 g2d.drawLine(0,imageHeight/2,imageWidth,imageHeight/2);
             g2d.drawString(right, 0,imageAscent);
@@ -126,8 +150,8 @@ public class ImageHelper {
         else if(columnType.contains(StringUtil.Str)){
             g2d.drawString(s, 0,imageAscent);
         }
-        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\"+styleNumber+"\\"+dispM.getId()+columnType+"("+dispM.getX()+" "+dispM.getY()+" "+dispM.getWidth()+" "+dispM.getHeight()+").bmp"));
-        return new ByteAndRegion(changeImage(bufferedImage,styleNumber),dispM);
+        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\"+styleNumber+"\\"+dispM.getId()+columnType+" (x"+returnDispms.getX()+" y"+returnDispms.getY()+" w"+returnDispms.getWidth()+" h"+returnDispms.getHeight()+").bmp"));
+        return new ByteAndRegion(changeImage(bufferedImage,styleNumber),returnDispms);
     }
     public static Dispms getText(Dispms dispM, Good good) {
         if(dispM.getSourceColumn().equalsIgnoreCase("0")) {
@@ -290,5 +314,28 @@ public class ImageHelper {
         // 47  57  29
         int remainder =  a % 8;
         return a+(8-remainder);
+    }
+    public static BufferedImage createBufferedImage(int width, int height) throws IOException {
+        // 单色位图
+        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_BINARY);
+        for (int i = 0; i < width; i++) {
+            for (int j = 0; j < height; j++)
+                bufferedImage.setRGB(i, j, Color.WHITE.getRGB());
+        }
+        return bufferedImage;
+    }
+    public static BufferedImage createBackgroundImage(int width, int height) throws IOException {
+        // 单色位图
+        BufferedImage bufferedImage = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_BINARY);
+        for (int i = 0; i < height/2; i++) {
+            for (int j = 0; j < width; j++)
+                bufferedImage.setRGB(j, i, Color.BLACK.getRGB());
+        }
+        //后面画白色
+        for (int i = height/2 ; i < height; i++) {
+            for (int j = 0; j < width; j++)
+                bufferedImage.setRGB(j, i, Color.WHITE.getRGB());
+        }
+        return bufferedImage;
     }
 }

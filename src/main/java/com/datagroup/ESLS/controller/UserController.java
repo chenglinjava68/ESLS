@@ -151,10 +151,11 @@ public class UserController {
     @PostMapping("/user/registry")
     @RequiresPermissions("添加或修改信息")
     public ResponseEntity<ResultBean> registryUser(@RequestBody @ApiParam("用户信息集合") UserVo userVo){
-        boolean flag = userService.registerUser(userVo);
-        if(flag)
-            return new ResponseEntity<>(ResultBean.success("注册成功"), HttpStatus.OK);
-        return  new ResponseEntity<>(ResultBean.error("注册失败 [用户名已经存在] "), HttpStatus.BAD_REQUEST);
+        User user = userService.registerUser(userVo);
+        if(user!=null)
+            return new ResponseEntity<>(ResultBean.success(user), HttpStatus.OK);
+        else
+            return  new ResponseEntity<>(ResultBean.error("失败 [用户名已经存在] "), HttpStatus.BAD_REQUEST);
     }
     @ApiOperation("切换指定ID的用户的状态（0禁用1启用）")
     @PutMapping("/user/status/{id}")
