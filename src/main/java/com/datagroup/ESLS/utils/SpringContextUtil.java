@@ -45,7 +45,7 @@ public class SpringContextUtil implements ApplicationContextAware {
                 byte[] regionImage = byteAndRegion.getRegionBytes();
                 System.out.println(region.getColumnType() + " " + region.getX() + " " + region.getY() + " " + region.getWidth() + " " + region.getHeight());
                 // 区域编号
-                firstByte[(i * 12) + 9] = (byte) (i + 1);
+                firstByte[(i * 12) + 9] = (byte) (i+1);
                 // 颜色
                 firstByte[(i * 12) + 10] = ColorUtil.getColorByte(region.getBackgroundColor(), region.getFontColor());
                 byte[] x, y, height, width;
@@ -65,6 +65,9 @@ public class SpringContextUtil implements ApplicationContextAware {
                     height = int2ByteArr(region.getHeight());
                     x = int2ByteArr(region.getX());
                     y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber) - region.getY()-region.getHeight());
+//                      y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber) - region.getY());
+//                    x = int2ByteArr(region.getX());
+//                    y = int2ByteArr(region.getY());
                     // x
                     firstByte[(i * 12) + 11] = y[1];
                     firstByte[(i * 12) + 12] = y[0];
@@ -82,7 +85,7 @@ public class SpringContextUtil implements ApplicationContextAware {
                 // 显示存储字节数
                 firstByte[(i * 12) + 19] = length[1];
                 firstByte[(i * 12) + 20] = length[0];
-                List<byte[]> byteList = getByteList(regionImage, i + 1);
+                List<byte[]> byteList = getByteList(regionImage, (i+1));
                 allbyteList.addAll(byteList);
             }
             catch (Exception e){
@@ -106,16 +109,13 @@ public class SpringContextUtil implements ApplicationContextAware {
         firstByte[8] = (byte) dispms.size();
         for(i = 0;i<dispms.size();i++){
             Dispms region = dispms.get(i);
-            if(good!=null)
-                region = ImageHelper.getText(region,good);
             System.out.println(region.getColumnType()+" " +region.getX() + " "+region.getY()+" "+region.getWidth()+" "+region.getHeight());
             ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
             region = byteAndRegion.getRegion();
             byte[] regionImage = byteAndRegion.getRegionBytes();
             System.out.println(region.getColumnType()+" "+region.getX() + " "+region.getY()+" "+region.getWidth()+" "+region.getHeight());
-            // 区域编号
-            System.out.println("区域编号"+String.valueOf(regionIdMap.get(region.getSourceColumn())));
             firstByte[(i*12)+9] = Byte.valueOf(String.valueOf(regionIdMap.get(region.getSourceColumn())));
+            System.out.println("区域编号:"+ Byte.valueOf(String.valueOf(regionIdMap.get(region.getSourceColumn()))));
             firstByte[(i*12)+10] =  ColorUtil.getColorByte(region.getBackgroundColor(),region.getFontColor());
             byte[] x,y,height,width;
             if (ImageHelper.getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40)){
@@ -152,7 +152,7 @@ public class SpringContextUtil implements ApplicationContextAware {
             // 显示存储字节数
             firstByte[(i*12)+19] = length[1];
             firstByte[(i*12)+20] = length[0];
-            List<byte[]> byteList = getByteList(regionImage, i + 1);
+            List<byte[]> byteList = getByteList(regionImage,Byte.valueOf(String.valueOf(regionIdMap.get(region.getSourceColumn()))));
             allbyteList.addAll(byteList);
         }
         byte[] bytes = allbyteList.get(allbyteList.size() - 1);
@@ -444,12 +444,13 @@ public class SpringContextUtil implements ApplicationContextAware {
         HashMap<String,Integer> map = new HashMap<>();
         String[] regionNames = regionName.split(" ");
         String styleRegionNames = getStyleRegionNames(dispms);
+        // 对改动的部分进行匹配  获得最终的区域信息
         regionNames = getRealRegionNames(regionNames, styleRegionNames).split(" ");
         for(String name : regionNames){
             Integer idByRegionName = getIdByRegionName(dispms, name);
-            System.out.println(name +" "+ idByRegionName);
-            if(idByRegionName>0)
-                map.put(name,idByRegionName);
+            if(idByRegionName!=null) {
+                map.put(name , idByRegionName);
+            }
         }
         return map;
     }
@@ -471,7 +472,7 @@ public class SpringContextUtil implements ApplicationContextAware {
     public static Integer getIdByRegionName(List<Dispms> dispms,String name){
         for(int i=0;i<dispms.size();i++){
             if(dispms.get(i).getSourceColumn().equals(name))
-                return i+1;
+                return (i+1);
         }
         return 0;
     }

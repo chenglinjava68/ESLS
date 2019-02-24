@@ -47,5 +47,5 @@ public interface TagService extends Service{
     // 绑定和解绑商品和标签
     ResponseEntity<ResultBean> bindGoodAndTag(String sourceArgs1, String ArgsString1,  String sourceArgs2,  String ArgsString2, String mode);
     // 价签更换样式
-     ResponseEntity<ResultBean> updateTagStyleById( long tagId,long styleId);
-    }
+    ResponseEntity<ResultBean> updateTagStyleById( long tagId,long styleId);
+}

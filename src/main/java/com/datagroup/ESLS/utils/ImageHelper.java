@@ -59,7 +59,8 @@ public class ImageHelper {
 //            // bytes转image
 //            ByteArrayInputStream in = new ByteArrayInputStream(bytes);
 //            BufferedImage image = ImageIO.read(in);
-            BufferedImage image= BarCode.encode(dispM.getText(), imageWidth, imageHeight );
+            String result = SpringContextUtil.getSourceData(dispM.getSourceColumn(), good);
+            BufferedImage image= BarCode.encode(result, imageWidth, imageHeight );
             g2d.drawImage(image,0,0,null);
         }
         // 线段
@@ -67,7 +68,7 @@ public class ImageHelper {
             String result = SpringContextUtil.getSourceData("name", good);
             Dispms name = dispmsService.findByStyleIdAndColumnTypeAndSourceColumn(dispM.getStyle().getId(), StringUtil.Str, "name");
             int fontType = ColorUtil.getFontType(name.getFontType());
-            String[] leftArgs = ImageHelper.getWidthAndHeight(name.getFontFamily(), fontType, name.getFontSize(),StringUtil.Str, result);
+            String[] leftArgs = ImageHelper.getWidthAndHeight(name.getFontFamily(), fontType, name.getFontSize(),StringUtil.Str, result,false);
             returnDispms.setY(Integer.valueOf(leftArgs[1]));
             bufferedImage = createBackgroundImage(imageWidth, imageHeight);
             g2d = (Graphics2D) bufferedImage.getGraphics();
@@ -97,14 +98,14 @@ public class ImageHelper {
         BeanUtils.copyProperties(dispM,returnDispms);
         returnDispms.setId(0);
         // 文本宽 高 columnType backgroundColor fontColor（非文字）
-        DispmsService dispmsService = (DispmsService) SpringContextUtil.getBean("DispmsService");
         String columnType = dispM.getColumnType();
         int fontType = ColorUtil.getFontType(dispM.getFontType());
         int imageWidth,imageHeight ,imageAscent;
         Boolean flag = ColorUtil.isRedAndBlack(dispM.getBackgroundColor(), dispM.getFontColor());
         // 以下为含字符串或数字
         String s = StringUtil.getRealString(dispM,good);
-        String[] args = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, dispM.getFontSize(),columnType, s);
+        //获得最大宽
+        String[] args = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, dispM.getFontSize(),columnType, s,false);
         imageWidth = Integer.valueOf(args[0]);
         imageHeight = Integer.valueOf(args[1]);
         imageAscent = Integer.valueOf(args[2]);
@@ -124,27 +125,18 @@ public class ImageHelper {
         Font font = new Font(dispM.getFontFamily(), fontType, dispM.getFontSize());
         g2d.setFont(font);
         g2d = ImageHelper.getGraphiceByColor(g2d,dispM,flag);
-        // 数字左侧 数字
-        if(columnType.contains(StringUtil.NUMBER_LEFT) || columnType.equals(StringUtil.NUMBER)){
+        //  数字
+        if(columnType.equals(StringUtil.NUMBER)){
+            String left = s.substring(0,s.indexOf(".")+1);
+            String[] leftArgs = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, dispM.getFontSize(), columnType, left, true);
             String backup = dispM.getBackup();
             if(backup.equals("1"))
                 g2d.drawLine(0,imageHeight/2,imageWidth,imageHeight/2);
-            g2d.drawString(s, 0,imageAscent);
-        }
-        // 数字右侧
-        else if(columnType.contains(StringUtil.NUMBER_RIGHT)){
-            Dispms left = dispmsService.findByStyleIdAndColumnTypeAndSourceColumn(dispM.getStyle().getId(), StringUtil.NUMBER_LEFT, dispM.getSourceColumn());
-            String[] leftArgs = ImageHelper.getWidthAndHeight(left.getFontFamily(), fontType, left.getFontSize(),StringUtil.NUMBER_LEFT, s);
-            if(ImageHelper.getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40))
-                returnDispms.setX(left.getX()+get8Number(Integer.valueOf(leftArgs[0])));
-            else {
-                returnDispms.setX(left.getX() + Integer.valueOf(leftArgs[0]));
-            }
+            g2d.drawString(left, 0,imageHeight);
             String right = s.substring(s.indexOf(".")+1);
-            String backup = dispM.getBackup().split("/")[0];
-            if(backup.equals("1"))
-                g2d.drawLine(0,imageHeight/2,imageWidth,imageHeight/2);
-            g2d.drawString(right, 0,imageAscent);
+            g2d.drawString(right, Integer.valueOf(leftArgs[0]),get8Number(imageHeight-2*(imageHeight-imageAscent))+2);
+            System.out.println(Integer.valueOf(leftArgs[1]));
+//            g2d.drawString(right, Integer.valueOf(leftArgs[0]),Integer.valueOf(leftArgs[1]));
         }
         // 字符串
         else if(columnType.contains(StringUtil.Str)){
@@ -201,11 +193,10 @@ public class ImageHelper {
         }
         return newdata;
     }
-    public static String[] getWidthAndHeight(String name, int style, int size, String columnType,String realString){
-        if(columnType.equals(StringUtil.NUMBER_LEFT))
-            realString = realString.substring(0,realString.indexOf(".")+1);
-        else if(columnType.equals(StringUtil.NUMBER_RIGHT))
-            realString = realString.substring(realString.indexOf(".")+1);
+    public static String[] getWidthAndHeight(String name, int style, int size, String columnType,String realString,boolean flag){
+        if(columnType.contains(StringUtil.NUMBER) && !flag){
+            realString = "10000.00";
+        }
         StringBuffer sb = new StringBuffer();
         Font font = new Font(name, style, size);
         FontDesignMetrics metrics = FontDesignMetrics.getMetrics(font);

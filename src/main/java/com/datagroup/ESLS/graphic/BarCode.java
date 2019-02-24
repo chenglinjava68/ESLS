@@ -23,7 +23,7 @@ public class BarCode
         try
         {
             codeWidth = Math.max(codeWidth, width);
-            com.google.zxing.common.BitMatrix bitMatrix = (new MultiFormatWriter()).encode(contents, BarcodeFormat.EAN_13, codeWidth, height, null);
+            com.google.zxing.common.BitMatrix bitMatrix = (new MultiFormatWriter()).encode(contents, BarcodeFormat.CODE_128, codeWidth, height, null);
             return MatrixToImageWriter.toBufferedImage(bitMatrix);
         }
         catch(Exception e)

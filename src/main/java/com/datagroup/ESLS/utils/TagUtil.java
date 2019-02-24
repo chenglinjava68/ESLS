@@ -46,6 +46,20 @@ public class TagUtil {
         }
         return result;
     }
+    public static String judgeResultAndSettingTagWaitUpdate(String result,long begin,Tag tag){
+        TagService tagService = ((TagService)SpringContextUtil.getBean("TagService"));
+        if ("成功".equals(result)) {
+            Tag newTag = SettingUtil.settingTag(tag, begin);
+            newTag.setWaitUpdate(1);
+            tagService.saveOne(newTag);
+        }
+        else {
+            tag.setCompleteTime(new Timestamp(System.currentTimeMillis()));
+            tag.setCompleteTime(null);
+            tagService.saveOne(tag);
+        }
+        return result;
+    }
     public static String judgeResultAndSettingRouter(String result, long begin, Router router){
         RouterService routerService = ((RouterService)SpringContextUtil.getBean("RouterService"));
         Router newRouter = SettingUtil.settintRouter(router, begin);

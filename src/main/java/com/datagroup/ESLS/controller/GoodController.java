@@ -148,7 +148,7 @@ public class GoodController {
             @ApiImplicitParam(name = "rootFilePath", value = "文件根路径", dataType = "String", paramType = "query"),
             @ApiImplicitParam(name = "mode", value = "-1为商品基本数据 -2为商品变价数据", dataType = "int", paramType = "query")
     })
-    public ResponseEntity<ResultBean> setS(@RequestParam String cron,@RequestParam String rootFilePath,@RequestParam Integer mode){
+    public ResponseEntity<ResultBean> setSchedule(@RequestParam String cron,@RequestParam String rootFilePath,@RequestParam Integer mode){
         boolean result = goodService.setScheduleTask(cron, rootFilePath, mode);
         if(result)
             return new ResponseEntity<>(new ResultBean("设置成功"),HttpStatus.OK);

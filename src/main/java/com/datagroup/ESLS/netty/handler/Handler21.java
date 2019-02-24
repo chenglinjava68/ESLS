@@ -37,8 +37,8 @@ public class Handler21 implements ServiceHandler{
             String resolutionHeight = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 19, 2));
             String screenType = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 21, 1));
             String power = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 22, 1));
-            String tag_rssi = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 23, 1));
-            String ap_rssi = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 24, 1));
+            String tag_rssi = String.valueOf(Integer.valueOf(ByteUtil.getRealMessage(ByteUtil.splitByte(message, 23, 1))) - 256);
+            String ap_rssi = String.valueOf(Integer.valueOf(ByteUtil.getRealMessage(ByteUtil.splitByte(message, 24, 1))) - 256);
             String hardversion = ByteUtil.getVersionMessage(ByteUtil.splitByte(message, 25, 6));
             String softversion = ByteUtil.getVersionMessage(ByteUtil.splitByte(message, 31, 6));
             System.out.println("条码："+barCode);
@@ -65,7 +65,7 @@ public class Handler21 implements ServiceHandler{
             tag.setHardwareVersion(hardversion);
             tag.setSoftwareVersion(softversion);
             // 不等待变价
-            tag.setWaitUpdate(0);
+            tag.setWaitUpdate(1);
             // 1启用
             tag.setForbidState(1);
             // 没有绑定

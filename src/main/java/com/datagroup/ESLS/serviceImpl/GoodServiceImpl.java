@@ -9,6 +9,7 @@ import com.datagroup.ESLS.common.request.RequestItem;
 import com.datagroup.ESLS.common.response.ResponseBean;
 import com.datagroup.ESLS.controller.CommonController;
 import com.datagroup.ESLS.dao.GoodDao;
+import com.datagroup.ESLS.dao.StyleDao;
 import com.datagroup.ESLS.dao.TagDao;
 import com.datagroup.ESLS.entity.*;
 import com.datagroup.ESLS.netty.command.CommandConstant;
@@ -80,9 +81,14 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
                 if(sourceData!=null && targetData!=null && !sourceData.equals(targetData)){
                     System.out.println(column+"不同");
                     if(!regionNames.contains(column)) {
-                        regionNames += (column + " ");
+                            regionNames += (column + " ");
                     }
                 }
+            }
+            List<Tag> tags = tagDao.findByGoodId(good.getId());
+            for( Tag tag :tags){
+                //标签等待更新
+                tag.setWaitUpdate(0);
             }
             // 0为等待更新
             good.setWaitUpdate(0);

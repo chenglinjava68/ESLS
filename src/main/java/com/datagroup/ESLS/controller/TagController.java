@@ -182,7 +182,7 @@ public class TagController {
 
     @ApiOperation(value = "对标签进行刷新或设置定期刷新",notes = "定期刷新才需加cron字段")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "mode", value = "0为对标签刷新 1为对指定路由器的所有标签刷新 3对标签定期刷新 4对路由器定期刷新", dataType = "int", paramType = "query")
+            @ApiImplicitParam(name = "mode", value = "0为对标签刷新 1为对指定路由器的所有标签刷新 2对标签定期刷新 3对路由器定期刷新", dataType = "int", paramType = "query")
     })
     @PutMapping("/tag/flush")
     @Log("对指定属性的标签集合进行刷新")
@@ -206,7 +206,7 @@ public class TagController {
     }
     @ApiOperation(value = "对标签进行巡检或设置定期巡检",notes = "定期巡检才需加cron字段")
     @ApiImplicitParams({
-            @ApiImplicitParam(name = "mode", value = " 0为对标签巡检 1为对指定路由器的所有标签巡检 3对标签定期巡检 4对路由器定期巡检", dataType = "int", paramType = "query")
+            @ApiImplicitParam(name = "mode", value = " 0为对标签巡检 1为对指定路由器的所有标签巡检 2对标签定期巡检 3对路由器定期巡检", dataType = "int", paramType = "query")
     })
     @PutMapping("/tag/scan")
     @Log("对标签进行巡检")

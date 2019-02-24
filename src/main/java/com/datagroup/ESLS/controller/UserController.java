@@ -4,11 +4,12 @@ import com.datagroup.ESLS.aop.Log;
 import com.datagroup.ESLS.common.constant.TableConstant;
 import com.datagroup.ESLS.common.request.RequestBean;
 import com.datagroup.ESLS.common.request.RequestItem;
+import com.datagroup.ESLS.common.response.ResponseBean;
 import com.datagroup.ESLS.common.response.ResultBean;
+import com.datagroup.ESLS.dao.RoleDao;
+import com.datagroup.ESLS.dao.UserAndRoleDao;
 import com.datagroup.ESLS.dto.UserVo;
-import com.datagroup.ESLS.entity.Admin;
-import com.datagroup.ESLS.entity.SystemVersionArgs;
-import com.datagroup.ESLS.entity.User;
+import com.datagroup.ESLS.entity.*;
 import com.datagroup.ESLS.redis.RedisUtil;
 import com.datagroup.ESLS.service.UserService;
 import com.datagroup.ESLS.utils.ConditionUtil;
@@ -44,6 +45,10 @@ public class UserController {
     private UserService userService;
     @Autowired
     private RedisUtil redisUtil;
+    @Autowired
+    private RoleDao roleDao;
+    @Autowired
+    private UserAndRoleDao userAndRoleDao;
     @ApiOperation(value = "根据条件获取用户信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = "查询条件 可为所有字段 分隔符为单个空格 ", dataType = "String", paramType = "query"),
@@ -65,24 +70,25 @@ public class UserController {
         // 查询全部
         if(result.equals(ConditionUtil.QUERY_ALL)) {
             List list = userService.findAll();
-            return new ResponseEntity<>(new ResultBean(list, list.size()), HttpStatus.OK);
+            List content = CopyUtil.copyUser(list);
+            return new ResponseEntity<>(new ResultBean(content, list.size()), HttpStatus.OK);
         }
         // 查询全部分页
         if(result.equals(ConditionUtil.QUERY_ALL_PAGE)){
             List list = userService.findAll();
             List content = userService.findAll(page, count);
-            return new ResponseEntity<>(new ResultBean(content, list.size()), HttpStatus.OK);
+            return new ResponseEntity<>(new ResultBean( CopyUtil.copyUser(content), list.size()), HttpStatus.OK);
         }
         // 带条件查询全部
         if(result.equals(ConditionUtil.QUERY_ATTRIBUTE_ALL)) {
             List content = userService.findAllBySql(TableConstant.TABLE_USER, query, queryString,User.class);
-            return new ResponseEntity<>(new ResultBean(content, content.size()), HttpStatus.OK);
+            return new ResponseEntity<>(new ResultBean( CopyUtil.copyUser(content), content.size()), HttpStatus.OK);
         }
         // 带条件查询分页
         if(result.equals(ConditionUtil.QUERY_ATTRIBUTE_PAGE)) {
             List list = userService.findAll();
             List content = userService.findAllBySql(TableConstant.TABLE_USER, query, queryString, page, count,User.class);
-            return new ResponseEntity<>(new ResultBean(content, list.size()), HttpStatus.OK);
+            return new ResponseEntity<>(new ResultBean( CopyUtil.copyUser(content), list.size()), HttpStatus.OK);
         }
         return new ResponseEntity<>(ResultBean.error("查询组合出错 函数未执行！"), HttpStatus.OK);
     }
@@ -119,6 +125,26 @@ public class UserController {
             return new ResponseEntity<>(ResultBean.error("获取失败！没有指定ID的用户"),HttpStatus.BAD_REQUEST);
         else
             return new ResponseEntity<>(ResultBean.success(user.getRoleList()),HttpStatus.OK);
+
+    }
+    @ApiOperation(value = "根据用户ID删除用户角色")
+    @PostMapping("/user/delete/{id}")
+    @Log("根据用户ID删除用户角色")
+    public ResponseEntity<ResultBean> getRolesByUserId(@PathVariable Long id,@RequestBody @ApiParam("用户ID集合")List<Long> roleIds) {
+        User user = userService.findById(id);
+        int successNumber = 0;
+        if(user==null)
+            return new ResponseEntity<>(ResultBean.error("获取失败！没有指定ID的用户"),HttpStatus.BAD_REQUEST);
+        else {
+            for( Long roleId:roleIds){
+                if(!roleDao.findById(roleId).isPresent())
+                    continue;
+                Integer result = userAndRoleDao.deleteByUserIdAndRoleId(id, roleId);
+                if(result!=null  && result>0)
+                    successNumber++;
+            }
+            return new ResponseEntity<>(ResultBean.success(new ResponseBean(roleIds.size(),successNumber)), HttpStatus.OK);
+        }
 
     }
     @ApiOperation(value = "user登录")

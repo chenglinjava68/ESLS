@@ -1,6 +1,5 @@
 package com.datagroup.ESLS.serviceImpl;
 
-import com.datagroup.ESLS.common.exception.ResultEnum;
 import com.datagroup.ESLS.common.exception.TagServiceException;
 import com.datagroup.ESLS.cycleJob.DynamicTask;
 import com.datagroup.ESLS.common.constant.ArrtributeConstant;
@@ -54,11 +53,14 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
             // 改价只更改区域
             if(isRegion){
                 System.out.println("区域");
-                for(Dispms dispms:dispmses)
-                    if(dispms.getStatus()!=null && dispms.getStatus()==1 && regionNames.contains(dispms.getSourceColumn()))
-                        dispmsesList.add(dispms);
+                for(Dispms dispms:dispmses){
+                     if(dispms.getStatus()!=null && dispms.getStatus()==1 && regionNames.contains(dispms.getSourceColumn())) {
+                         dispmsesList.add(dispms);
+                     }
+                }
                 HashMap<String,Integer> regionIdMap = SpringContextUtil.getRegionIdList(regionNames,dispmses);
-                // price spec name unit origin category barCode 0 3 2
+                System.out.println(dispmsesList.size());
+                System.out.println(regionIdMap.toString());
                 byteResponse = SpringContextUtil.getRegionRequest(dispmsesList, tag.getStyle().getStyleNumber(), good,regionIdMap);
                 // 商品改价置1更新完毕
                 good.setWaitUpdate(1);
@@ -131,7 +133,10 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
         cyclejob.setMode(mode);
         cyclejob.setType(ModeConstant.DO_BY_TAG_FLUSH);
         cycleJobDao.save(cyclejob);
-        dynamicTask.addFlushTask("0 0/1 * * * ?",requestBean,mode);
+        if(mode.equals(ModeConstant.DO_BY_TAG_CYCLE))
+            dynamicTask.addFlushTask(cyclejob.getCron(),requestBean,ModeConstant.DO_BY_TAG);
+        else
+            dynamicTask.addFlushTask(cyclejob.getCron(),requestBean,ModeConstant.DO_BY_ROUTER);
         return new ResponseBean(requestBean.getItems().size(), requestBean.getItems().size());
     }
     // 巡检指定地址的标签
@@ -171,7 +176,10 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
         cyclejob.setMode(mode);
         cyclejob.setType(ModeConstant.DO_BY_TAG_SCAN);
         cycleJobDao.save(cyclejob);
-        dynamicTask.addTagScanTask("0 0/1 * * * ?",requestBean, mode);
+        if(mode.equals(ModeConstant.DO_BY_TAG_CYCLE))
+            dynamicTask.addTagScanTask(cyclejob.getCron(),requestBean,ModeConstant.DO_BY_TAG);
+        else
+            dynamicTask.addTagScanTask(cyclejob.getCron(),requestBean,ModeConstant.DO_BY_ROUTER);
         return new ResponseBean(requestBean.getItems().size(), requestBean.getItems().size());
     }
 

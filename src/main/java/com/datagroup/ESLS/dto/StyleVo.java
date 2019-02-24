@@ -16,8 +16,6 @@ public class StyleVo {
     private String name;
     private Integer width;
     private Integer height;
-    private Integer refreshState;
-    private Integer refreshTime;
-    private Timestamp refreshBegin;
+    private String cron;
     private List<Long> tagIdList = new ArrayList<>();
 }

@@ -9,6 +9,7 @@ import com.datagroup.ESLS.dto.RouterVo;
 import com.datagroup.ESLS.entity.Router;
 import com.datagroup.ESLS.entity.Shop;
 import com.datagroup.ESLS.service.RouterService;
+import com.datagroup.ESLS.service.ShopService;
 import com.datagroup.ESLS.utils.ConditionUtil;
 import com.datagroup.ESLS.utils.CopyUtil;
 import io.swagger.annotations.*;
@@ -32,7 +33,7 @@ public class RouterController {
 
     @Autowired
     private RouterService routerService;
-
+    private ShopService shopService;
     @ApiOperation(value = "根据条件获取路由器信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = "查询条件 可为所有字段", dataType = "String", paramType = "query"),
@@ -101,6 +102,8 @@ public class RouterController {
         // 绑定商店
         if (routerVo.getShopId() != 0) {
             Shop shop = new Shop();
+            if(!shopService.findById(routerVo.getShopId()).isPresent())
+                return new ResponseEntity<>(ResultBean.error("商店不存在"),HttpStatus.BAD_REQUEST);
             shop.setId(routerVo.getShopId());
             router.setShop(shop);
         }

@@ -50,6 +50,6 @@ public class AsyncServiceTask {
         ArrayList<Dispms> dispms = new ArrayList<>(style.getDispmses());
         ResponseBean responseBean = tagService.updateTagStyle(tag,dispms);
         String result = responseBean.getSuccessNumber()==1?"成功":"失败";
-        return new AsyncResult<>(TagUtil.judgeResultAndSettingTag(result,begin,tag));
+        return new AsyncResult<>(TagUtil.judgeResultAndSettingTagWaitUpdate(result,begin,tag));
     }
 }

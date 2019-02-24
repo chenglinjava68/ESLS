@@ -181,12 +181,12 @@ public class DynamicTask {
     public void init(){
         List<CycleJob> CycleJobs = cycleJobDao.findAll();
         for(CycleJob job: CycleJobs){
-            // 扫描商品基本文件
+            // 扫描商品基本文件  7
             if(job.getType().equals(ModeConstant.DO_BY_BASEGOODS_SCAN)) {
                 addBaseGoodsScanTask(job.getCron(), job.getArgs());
                 continue;
             }
-            // 扫描商品变价文件
+            // 扫描商品变价文件 8
             else if(job.getType().equals(ModeConstant.DO_BY_CHANGEGOODS_SCAN)) {
                 addChangeGoodsScanTask(job.getCron(), job.getArgs());
                 continue;

@@ -127,7 +127,7 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
         cyclejob.setMode(ModeConstant.DO_BY_ROUTER);
         cyclejob.setType(ModeConstant.DO_BY_ROUTER_SCAN);
         cycleJobDao.save(cyclejob);
-        dynamicTask.addRouterScanTask("0 0/1 * * * ?",requestBean);
+        dynamicTask.addRouterScanTask(cyclejob.getCron(),requestBean);
         return new ResponseBean(requestBean.getItems().size(), requestBean.getItems().size());
     }
 

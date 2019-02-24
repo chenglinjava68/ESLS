@@ -22,8 +22,8 @@ public class Handler51 implements ServiceHandler{
         log.info("标签巡检（应答包）-----处理器执行！");
         String barCode = ByteUtil.getDigitalMessage(ByteUtil.splitByte(message, 0, 12));
         String power = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 12, 1));
-        String tag_rssi = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 13, 1));
-        String ap_rssi = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 14, 1));
+        String tag_rssi = String.valueOf(Integer.valueOf(ByteUtil.getRealMessage(ByteUtil.splitByte(message, 13, 1)))-256);
+        String ap_rssi = String.valueOf(Integer.valueOf(ByteUtil.getRealMessage(ByteUtil.splitByte(message, 14, 1)))-256);
         byte[] state = ByteUtil.splitByte(message, 15, 1);
         System.out.println("条码："+barCode);
         System.out.println("电量："+power);
