@@ -41,7 +41,7 @@ public interface TagService extends Service{
     ResponseBean changeLightStatus(RequestBean requestBean,Integer mode);
     ResponseBean changeLightStatusByRouter(RequestBean requestBean,Integer mode);
     // 更新指定路由器下的所有样式
-    ResponseBean updateTagStyle(Tag tag, List<Dispms> dispmses);
+    ResponseBean updateTagStyle(Tag tag);
     // 对指定的标签或路由器发出标签移除命令
     ResponseBean removeTagCommand(RequestBean requestBean,Integer mode);
     // 绑定和解绑商品和标签

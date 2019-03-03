@@ -15,6 +15,7 @@ public interface RouterService extends Service{
     Optional<Router> findById(Long id);
     boolean deleteById(Long id);
     Router findByIp(String ip);
+    Router findByBarCode(String barCode);
     // 更换路由器
     ResponseBean changeRouter(String sourceQuery,String sourceQueryString,String targetQuery, String targetQueryString);
     // 对路由器进行巡检

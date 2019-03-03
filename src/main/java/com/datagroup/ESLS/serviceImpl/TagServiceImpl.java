@@ -1,5 +1,6 @@
 package com.datagroup.ESLS.serviceImpl;
 
+import com.datagroup.ESLS.common.exception.ResultEnum;
 import com.datagroup.ESLS.common.exception.TagServiceException;
 import com.datagroup.ESLS.cycleJob.DynamicTask;
 import com.datagroup.ESLS.common.constant.ArrtributeConstant;
@@ -37,49 +38,26 @@ import java.util.Optional;
 public class TagServiceImpl extends BaseServiceImpl implements TagService {
     // 更新标签样式
     @Override
-    public ResponseBean updateTagStyle(Tag tag, List<Dispms> dispmses) {
+    public ResponseBean updateTagStyle(Tag tag) {
         int successNumber = 0;
         long begin = System.currentTimeMillis();
         try {
             if(tag==null)  return new ResponseBean(0, successNumber);
             Channel channel = SpringContextUtil.getChannelByRouter(tag.getRouter().getId());
-//            if(channel==null)
-//                throw new TagServiceException(ResultEnum.COMMUNITICATION_ERROR);
-            List<Dispms> dispmsesList = new ArrayList<>();
+            if(channel==null)
+                throw new TagServiceException(ResultEnum.COMMUNITICATION_ERROR);
             Good good = tag.getGood();
+            if(good == null)
+                return new ResponseBean(1, 0);
             String regionNames = good.getRegionNames();
             boolean isRegion = !StringUtil.isEmpty(regionNames)?true:false;
-            ByteResponse byteResponse;
-            // 改价只更改区域
-            if(isRegion){
-                System.out.println("区域");
-                for(Dispms dispms:dispmses){
-                     if(dispms.getStatus()!=null && dispms.getStatus()==1 && regionNames.contains(dispms.getSourceColumn())) {
-                         dispmsesList.add(dispms);
-                     }
-                }
-                HashMap<String,Integer> regionIdMap = SpringContextUtil.getRegionIdList(regionNames,dispmses);
-                System.out.println(dispmsesList.size());
-                System.out.println(regionIdMap.toString());
-                byteResponse = SpringContextUtil.getRegionRequest(dispmsesList, tag.getStyle().getStyleNumber(), good,regionIdMap);
-                // 商品改价置1更新完毕
-                good.setWaitUpdate(1);
-                good.setRegionNames(null);
-                goodDao.save(good);
-            }
-            else{
-                for(int i=0 ;i<dispmses.size();i++) {
-                    Dispms dispms = dispmses.get(i);
-                    System.out.println("基本样式："+dispms.getSourceColumn());
-                    if ( dispms.getStatus() == 1)
-                        dispmsesList.add(dispmses.get(i));
-                }
-                byteResponse = SpringContextUtil.getRequest(dispmsesList, tag.getStyle().getStyleNumber(), good);
-            }
+            ByteResponse byteResponse = ImageHelper.getByteResponse(tag);
+            if(byteResponse==null)
+                return new ResponseBean(1, 0);
             String resultString = "";
             if(!isRegion) {
                 // 更改样式全局信息包
-                resultString = nettyUtil.sendMessageWithRepeat(channel, CommandConstant.getBytesByType(SpringContextUtil.getAddressByBarCode(tag.getBarCode()), byteResponse.getFirstByte(), CommandConstant.COMMANDTYPE_TAG), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
+                resultString = nettyUtil.sendMessageWithRepeat(channel, CommandConstant.getBytesByType(SpringContextUtil.getAddressByBarCode(tag.getBarCode()), byteResponse.getFirstByte(), CommandConstant.COMMANDTYPE_TAG), Integer.valueOf(SystemVersionArgs.commandRepeatTime),Integer.valueOf(SystemVersionArgs.commandWaitingTime));
                 System.out.println("更改样式全局信息包命令响应结果：" + resultString);
                 if (ErrorUtil.isErrorCommunication(resultString))
                     return new ResponseBean(1, 0);
@@ -87,7 +65,10 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
             // 样式具体内容分包
             List<byte[]> byteList = byteResponse.getByteList();
             for(int i=0;i<byteList.size();i++) {
-                resultString = nettyUtil.sendMessageWithRepeat(channel, CommandConstant.getBytesByType(SpringContextUtil.getAddressByBarCode(tag.getBarCode()), byteList.get(i),CommandConstant.COMMANDTYPE_TAG),Integer.valueOf(SystemVersionArgs.commandRepeatTime));
+                if(i==0)
+                    resultString = nettyUtil.sendMessageWithRepeat(channel, CommandConstant.getBytesByType(SpringContextUtil.getAddressByBarCode(tag.getBarCode()), byteList.get(i),CommandConstant.COMMANDTYPE_TAG),Integer.valueOf(SystemVersionArgs.commandRepeatTime),Integer.valueOf(SystemVersionArgs.commandWaitingTime));
+                else
+                    resultString = nettyUtil.sendMessageWithRepeat(channel, CommandConstant.getBytesByType(SpringContextUtil.getAddressByBarCode(tag.getBarCode()), byteList.get(i),CommandConstant.COMMANDTYPE_TAG),Integer.valueOf(SystemVersionArgs.commandRepeatTime),1000);
                 System.out.println("样式具体内容分包命令"+i+"响应结果：" + resultString);
                 if(ErrorUtil.isErrorCommunication(resultString))
                     return new ResponseBean(1, 0);
@@ -128,15 +109,12 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
     public ResponseBean flushTagsByCycle(RequestBean requestBean,Integer mode) {
         // 设置定期刷新
         CycleJob cyclejob = new CycleJob();
-        cyclejob.setCron("0 0/1 * * * ?");
+        cyclejob.setCron("0 10,44 14 ? 3 WED");
         cyclejob.setArgs(RequestBeanUtil.getRequestBeanAsString(requestBean));
         cyclejob.setMode(mode);
         cyclejob.setType(ModeConstant.DO_BY_TAG_FLUSH);
         cycleJobDao.save(cyclejob);
-        if(mode.equals(ModeConstant.DO_BY_TAG_CYCLE))
-            dynamicTask.addFlushTask(cyclejob.getCron(),requestBean,ModeConstant.DO_BY_TAG);
-        else
-            dynamicTask.addFlushTask(cyclejob.getCron(),requestBean,ModeConstant.DO_BY_ROUTER);
+        dynamicTask.addTask(requestBean,ModeConstant.DO_BY_TAG_FLUSH,mode);
         return new ResponseBean(requestBean.getItems().size(), requestBean.getItems().size());
     }
     // 巡检指定地址的标签
@@ -145,7 +123,7 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
         String contentType = CommandConstant.QUERYTAG;
         List<Tag> tags = RequestBeanUtil.getTagsByRequestBean(requestBean);
         ResponseBean responseBean;
-        TagUtil.setIsNotWorking(tags);
+        TagUtil.setTagIsNotWorking(tags);
         if(tags.size()>1){
             nettyUtil.awakeFirst(tags);
             responseBean = SendCommandUtil.sendCommandWithTags(tags,contentType,CommandConstant.COMMANDTYPE_TAG);
@@ -161,7 +139,7 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
         String contentType = CommandConstant.QUERYTAG;
         List<Router> routers = RequestBeanUtil.getRoutersByRequestBean(requestBean);
         List<Tag> tags = TagUtil.getTagsByRouters(routers);
-        TagUtil.setIsNotWorking(tags);
+        TagUtil.setTagIsNotWorking(tags);
         ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(routers, contentType,CommandConstant.COMMANDTYPE_ROUTER);
         return responseBean;
     }
@@ -171,15 +149,12 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
         // 设置定期巡检
         CycleJob cyclejob = new CycleJob();
         // cron表达式
-        cyclejob.setCron("0 0/1 * * * ?");
+        cyclejob.setCron("0 10,44 14 ? 3 WED");
         cyclejob.setArgs(RequestBeanUtil.getRequestBeanAsString(requestBean));
         cyclejob.setMode(mode);
         cyclejob.setType(ModeConstant.DO_BY_TAG_SCAN);
         cycleJobDao.save(cyclejob);
-        if(mode.equals(ModeConstant.DO_BY_TAG_CYCLE))
-            dynamicTask.addTagScanTask(cyclejob.getCron(),requestBean,ModeConstant.DO_BY_TAG);
-        else
-            dynamicTask.addTagScanTask(cyclejob.getCron(),requestBean,ModeConstant.DO_BY_ROUTER);
+        dynamicTask.addTask(requestBean,ModeConstant.DO_BY_TAG_SCAN,mode);
         return new ResponseBean(requestBean.getItems().size(), requestBean.getItems().size());
     }
 
@@ -265,7 +240,7 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
                 // 多线程并行发送命令
                 tag.setState((byte) 1);
                 String contentType = CommandConstant.TAGBIND;
-                ResponseBean responseBean = SendCommandUtil.sendCommandWithTags(tags, contentType, CommandConstant.COMMANDTYPE_TAG);
+//                ResponseBean responseBean = SendCommandUtil.sendCommandWithTags(tags, contentType, CommandConstant.COMMANDTYPE_TAG);
 //                if(responseBean.getSuccessNumber()==0)
 //                    throw new TagServiceException(ResultEnum.GOOD_TAG_BIND_ERROR);
                 SendCommandUtil.updateTagStyle(tags);
@@ -331,8 +306,6 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
             return new ResponseEntity<>(ResultBean.error("发送样式修改包失败"), HttpStatus.BAD_REQUEST);
         }
     }
-
-
     // 改变标签状态
     @Override
     public ResponseBean changeStatus(RequestBean requestBean, Integer mode) {

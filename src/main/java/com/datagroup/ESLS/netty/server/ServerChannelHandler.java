@@ -161,6 +161,31 @@ public class ServerChannelHandler extends SimpleChannelInboundHandler<Object> {
             this.dataMap.put(key,"成功");
             this.promiseMap.get(key).setSuccess();
         }
+        // AP读取应答包
+        else  if(CommandConstant.APREAD.equals(CommandCategory.getCommandCategory(header))){
+            System.out.println(handlerName);
+            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
+            key = ctx.channel().id().toString()+"-"+req[8]+req[9];
+            SpringContextUtil.printBytes("key = "+key+" 接收AP读取应答包消息",req);
+            this.dataMap.put(key,"成功");
+            this.promiseMap.get(key).setSuccess();
+        }
+        // 获取计量数据应答包
+        else  if(CommandConstant.BALANCEDATA.equals(CommandCategory.getCommandCategory(header))){
+            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
+            key = ctx.channel().id().toString()+"-"+req[8]+req[9];
+            SpringContextUtil.printBytes("key = "+key+" 接收获取计量数据应答包消息",req);
+            this.dataMap.put(key,"成功");
+            this.promiseMap.get(key).setSuccess();
+        }
+        // 获取电子秤电量应答包
+        else  if(CommandConstant.BALANCEPOWER.equals(CommandCategory.getCommandCategory(header))){
+            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
+            key = ctx.channel().id().toString()+"-"+req[8]+req[9];
+            SpringContextUtil.printBytes("key = "+key+" 接收获取电子秤电量应答包消息",req);
+            this.dataMap.put(key,"成功");
+            this.promiseMap.get(key).setSuccess();
+        }
         // 路由器注册命令
         else if(CommandConstant.ROUTERREGISTY.equals(CommandCategory.getCommandCategory(header))){
             SpringContextUtil.printBytes("key = "+key+" 接收路由器注册消息",req);

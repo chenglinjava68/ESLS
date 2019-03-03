@@ -74,9 +74,14 @@ public class CommandCategory {
             return CommandConstant.ROUTERRESPONSE;
         } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.ROUTERREGISTY).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.ROUTERREGISTY).getCommand_id()) {
             return CommandConstant.ROUTERREGISTY;
-        }
-        else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.TAGREGISTY).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.TAGREGISTY).getCommand_id()) {
+        } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.TAGREGISTY).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.TAGREGISTY).getCommand_id()) {
             return CommandConstant.TAGREGISTY;
+        } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.APREAD).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.APREAD).getCommand_id()) {
+            return CommandConstant.APREAD;
+        } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.BALANCEDATA).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.BALANCEDATA).getCommand_id()) {
+            return CommandConstant.BALANCEDATA;
+        } else if (header[0] == COMMAND_CATEGORY.get(CommandConstant.BALANCEPOWER).getCommand_class() && header[1] == COMMAND_CATEGORY.get(CommandConstant.BALANCEPOWER).getCommand_id()) {
+            return CommandConstant.BALANCEPOWER;
         }else {
             return null;
         }

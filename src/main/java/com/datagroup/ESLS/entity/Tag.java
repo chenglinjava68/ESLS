@@ -59,6 +59,9 @@ public class Tag implements Serializable {
     @ManyToOne
     @JoinColumn(name = "routerid", referencedColumnName = "id")
     private Router router;
+    @OneToMany(mappedBy = "tag")
+    @JsonIgnore
+    private Collection<Balance> balances;
     public Tag() {
     }
 }

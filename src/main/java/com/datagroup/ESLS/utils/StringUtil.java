@@ -25,12 +25,7 @@ public class StringUtil {
         // 为与商品有关字段
         if(!dispM.getSourceColumn().equals("0")){
             String text = SpringContextUtil.getSourceData(dispM.getSourceColumn(),good);
-            if(dispM.getColumnType().equals(NUMBER_LEFT)) {
-                String left = text.substring(0,text.indexOf(".")+1);
-                sb.append(left);
-            }
-            else
-                sb.append(text);
+            sb.append(text);
         }
         // 为与商品无关字段
         else if(!isEmpty(dispM.getText())){

@@ -9,6 +9,7 @@ import com.datagroup.ESLS.entity.*;
 import com.datagroup.ESLS.netty.server.ServerChannelHandler;
 import com.datagroup.ESLS.service.RouterService;
 import io.netty.channel.Channel;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -22,10 +23,12 @@ import java.util.*;
 import java.util.List;
 
 @Component
+@Slf4j
 public class SpringContextUtil implements ApplicationContextAware {
     private static ApplicationContext applicationContext;
     public static ByteResponse getRequest(List<Dispms> dispms,String styleNumber,Good good) throws IOException {
-        FileUtils.deleteDirectory(new File("D:\\styles\\"+styleNumber));
+        if(dispms.size()==0)
+            return null;
         List<byte[]> allbyteList = new ArrayList<>();
         byte[] firstByte = new byte[3+6+dispms.size()*12];
         int i,j;
@@ -36,16 +39,16 @@ public class SpringContextUtil implements ApplicationContextAware {
             firstByte[j+3] = (byte) styleNumber.charAt(j);
         firstByte[7]  = '\0';
         firstByte[8] = (byte) dispms.size();
+        FileUtils.deleteDirectory(new File("D:\\styles\\"+styleNumber+"("+dispms.get(0).getStyle().getId()+")"));
         for (i = 0; i < dispms.size(); i++) {
             try {
                 Dispms region = dispms.get(i);
-                System.out.println(region.getColumnType() + " " + region.getX() + " " + region.getY() + " " + region.getWidth() + " " + region.getHeight());
                 ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
                 region = byteAndRegion.getRegion();
                 byte[] regionImage = byteAndRegion.getRegionBytes();
-                System.out.println(region.getColumnType() + " " + region.getX() + " " + region.getY() + " " + region.getWidth() + " " + region.getHeight());
                 // 区域编号
-                firstByte[(i * 12) + 9] = (byte) (i+1);
+//                firstByte[(i * 12) + 9] = (byte) (i+1);
+                firstByte[(i * 12) + 9] = Byte.parseByte(region.getRegionId());
                 // 颜色
                 firstByte[(i * 12) + 10] = ColorUtil.getColorByte(region.getBackgroundColor(), region.getFontColor());
                 byte[] x, y, height, width;
@@ -85,7 +88,7 @@ public class SpringContextUtil implements ApplicationContextAware {
                 // 显示存储字节数
                 firstByte[(i * 12) + 19] = length[1];
                 firstByte[(i * 12) + 20] = length[0];
-                List<byte[]> byteList = getByteList(regionImage, (i+1));
+                List<byte[]> byteList = getByteList(regionImage, Integer.valueOf(region.getRegionId()));
                 allbyteList.addAll(byteList);
             }
             catch (Exception e){
@@ -96,68 +99,21 @@ public class SpringContextUtil implements ApplicationContextAware {
         bytes[4] = 0x01;
         return new ByteResponse(firstByte,allbyteList);
     }
-    public static ByteResponse getRegionRequest(List<Dispms> dispms,String styleNumber,Good good,HashMap<String,Integer> regionIdMap){
+    public static ByteResponse getRegionRequest(List<Dispms> dispms,String styleNumber,Good good){
+        if(dispms.size()==0)
+            return null;
         List<byte[]> allbyteList = new ArrayList<>();
-        byte[] firstByte = new byte[3+6+dispms.size()*12];
-        int i,j;
-        firstByte[0] = 0x03;
-        firstByte[1] = 0x01;
-        firstByte[2] = (byte) (6+dispms.size()*12);
-        for(j=0;j<styleNumber.length();j++)
-            firstByte[j+3] = (byte) styleNumber.charAt(j);
-        firstByte[7]  = '\0';
-        firstByte[8] = (byte) dispms.size();
-        for(i = 0;i<dispms.size();i++){
+        for(int i = 0;i<dispms.size();i++){
             Dispms region = dispms.get(i);
-            System.out.println(region.getColumnType()+" " +region.getX() + " "+region.getY()+" "+region.getWidth()+" "+region.getHeight());
             ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
             region = byteAndRegion.getRegion();
             byte[] regionImage = byteAndRegion.getRegionBytes();
-            System.out.println(region.getColumnType()+" "+region.getX() + " "+region.getY()+" "+region.getWidth()+" "+region.getHeight());
-            firstByte[(i*12)+9] = Byte.valueOf(String.valueOf(regionIdMap.get(region.getSourceColumn())));
-            System.out.println("区域编号:"+ Byte.valueOf(String.valueOf(regionIdMap.get(region.getSourceColumn()))));
-            firstByte[(i*12)+10] =  ColorUtil.getColorByte(region.getBackgroundColor(),region.getFontColor());
-            byte[] x,y,height,width;
-            if (ImageHelper.getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40)){
-                width = int2ByteArr(region.getWidth());
-                height = int2ByteArr(region.getHeight());
-                x = int2ByteArr(region.getX());
-                y = int2ByteArr(region.getY());
-                // x
-                firstByte[(i*12)+11] =  x[1];
-                firstByte[(i*12)+12] =  x[0];
-                // y
-                firstByte[(i*12)+13] =  y[1];
-                firstByte[(i*12)+14] =  y[0];
-            }
-            else{
-                width = int2ByteArr(region.getWidth());
-                height = int2ByteArr(region.getHeight());
-                x = int2ByteArr(region.getX());
-                y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber)-region.getY()-region.getHeight());
-                // x
-                firstByte[(i*12)+11] =  y[1];
-                firstByte[(i*12)+12] =  y[0];
-                // y
-                firstByte[(i*12)+13] =  x[1];
-                firstByte[(i*12)+14] =  x[0];
-            }
-            byte[] length = int2ByteArr(regionImage.length);
-            // 长度
-            firstByte[(i*12)+15] =  width[1];
-            firstByte[(i*12)+16] =  width[0];
-            // 宽度
-            firstByte[(i*12)+17] =  height[1];
-            firstByte[(i*12)+18] =  height[0];
-            // 显示存储字节数
-            firstByte[(i*12)+19] = length[1];
-            firstByte[(i*12)+20] = length[0];
-            List<byte[]> byteList = getByteList(regionImage,Byte.valueOf(String.valueOf(regionIdMap.get(region.getSourceColumn()))));
+            List<byte[]> byteList = getByteList(regionImage,Integer.valueOf(region.getRegionId()));
             allbyteList.addAll(byteList);
         }
         byte[] bytes = allbyteList.get(allbyteList.size() - 1);
         bytes[4] = 0x01;
-        return new ByteResponse(firstByte,allbyteList);
+        return new ByteResponse(null,allbyteList);
     }
     // 分包发送
     public static List<byte[]> getByteList(byte[] regionImage,int number){
@@ -233,7 +189,7 @@ public class SpringContextUtil implements ApplicationContextAware {
     }
     public static ByteAndRegion getRegionImage(Dispms dispM, String styleNumber,Good good) {
         try {
-            FileUtil.createFileIfNotExist("D:\\styles\\",styleNumber);
+            FileUtil.createFileIfNotExist("D:\\styles\\",styleNumber+"("+dispM.getStyle().getId()+")");
             String columnType = dispM.getColumnType();
             if(!ImageHelper.getImageType(columnType))
                 return ImageHelper.getImageByType1(dispM,styleNumber,good);
@@ -418,17 +374,17 @@ public class SpringContextUtil implements ApplicationContextAware {
             sb.append(b);
         return sb.toString();
     }
-    public static Channel getChannelByRouter(Router router){
+    public static synchronized Channel getChannelByRouter(Router router){
         Channel channel = getChannelIdGroup().get(router.getBarCode());
         return channel;
     }
-    public static Channel getChannelByRouter(Long routerId){
+    public static synchronized Channel getChannelByRouter(Long routerId){
         RouterService routerService = (RouterService) getBean("RouterService");
         Router router= routerService.findById(routerId).get();
         Channel channel = getChannelIdGroup().get(router.getBarCode());
         return channel;
     }
-    public static Router getRouterByChannel(Channel channel){
+    public static synchronized Router getRouterByChannel(Channel channel){
         InetSocketAddress socketAddress = (InetSocketAddress) channel.remoteAddress();
         Router router = ((RouterService)getBean("RouterService")).findByIp(socketAddress.getAddress().getHostAddress());
         return router;

@@ -14,4 +14,5 @@ public class TableConstant {
     public final static String TABLE_USER_ROLE = "user_role";
     public final static String TABLE_ROLE_PERMISSION = "role_permission";
     public final static String TABLE_CYCLEJOBS = "cyclejobs";
+    public final static String TABLE_BALANCE = "balance";
 }

@@ -18,6 +18,11 @@ public class CommandConstant {
     public static String ROUTERREGISTY = "ROUTERREGISTY";
     public static String TAGREGISTY = "TAGREGISTY";
     public static String MAC = "mac";
+    // 路由器测试
+    public static String APREAD = "APREAD";
+    // 电子秤
+    public static String BALANCEDATA = "BALANCEDATA";
+    public static String BALANCEPOWER = "BALANCEPOWER";
     // 命令常量
     // 0对标签 1对路由器
     public static Integer COMMANDTYPE_TAG = 0;

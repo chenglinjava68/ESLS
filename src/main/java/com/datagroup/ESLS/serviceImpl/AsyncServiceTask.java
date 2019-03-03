@@ -34,21 +34,19 @@ public class AsyncServiceTask {
     @Async
     public ListenableFuture<String> sendMessageWithRepeat(Channel channel, byte[] message,Tag tag,long begin) {
         log.info("-----向(标签集合)发送命令线程-----");
-        String result = nettyUtil.sendMessageWithRepeat(channel, message, Integer.valueOf(SystemVersionArgs.commandRepeatTime));
+        String result = nettyUtil.sendMessageWithRepeat(channel, message, Integer.valueOf(SystemVersionArgs.commandRepeatTime),Integer.valueOf(SystemVersionArgs.commandWaitingTime));
         return new AsyncResult<>(TagUtil.judgeResultAndSettingTag(result,begin,tag));
     }
     @Async
     public ListenableFuture<String> sendMessageWithRepeat(Channel channel, byte[] message, Router router, long begin,int time) {
         log.info("-----向(路由器集合)发送命令线程-----");
-        String result = nettyUtil.sendMessageWithRepeat(channel, message,time);
+        String result = nettyUtil.sendMessageWithRepeat(channel, message,time,Integer.valueOf(SystemVersionArgs.commandWaitingTime));
         return new AsyncResult<>(TagUtil.judgeResultAndSettingRouter(result,begin,router));
     }
     @Async
     public ListenableFuture<String> updateTagStyle(Tag tag,long begin) throws InterruptedException {
         log.info("-----向(标签集合)发送更新样式命令线程-----");
-        Style style = tag.getStyle();
-        ArrayList<Dispms> dispms = new ArrayList<>(style.getDispmses());
-        ResponseBean responseBean = tagService.updateTagStyle(tag,dispms);
+        ResponseBean responseBean = tagService.updateTagStyle(tag);
         String result = responseBean.getSuccessNumber()==1?"成功":"失败";
         return new AsyncResult<>(TagUtil.judgeResultAndSettingTagWaitUpdate(result,begin,tag));
     }

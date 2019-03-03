@@ -15,10 +15,7 @@ import com.datagroup.ESLS.entity.SystemVersionArgs;
 import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.netty.command.CommandConstant;
 import com.datagroup.ESLS.service.RouterService;
-import com.datagroup.ESLS.utils.NettyUtil;
-import com.datagroup.ESLS.utils.RequestBeanUtil;
-import com.datagroup.ESLS.utils.SendCommandUtil;
-import com.datagroup.ESLS.utils.SpringContextUtil;
+import com.datagroup.ESLS.utils.*;
 import io.netty.channel.Channel;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -83,6 +80,11 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
     }
 
     @Override
+    public Router findByBarCode(String barCode) {
+        return routerDao.findByBarCode(barCode);
+    }
+
+    @Override
     public ResponseBean changeRouter(String sourceQuery, String sourceQueryString, String targetQuery, String targetQueryString) {
         Router source = (Router)findByArrtribute(TableConstant.TABLE_ROUTERS, sourceQuery, sourceQueryString, Router.class).get(0);
         Router target = (Router)findByArrtribute(TableConstant.TABLE_ROUTERS, targetQuery, targetQueryString, Router.class).get(0);
@@ -113,6 +115,7 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
         for (RequestItem items : requestBean.getItems()) {
             routerList.addAll(findByArrtribute(TableConstant.TABLE_ROUTERS, items.getQuery(), items.getQueryString(), Router.class));
         }
+        TagUtil.setRouterIsNotWorking(routerList);
         ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(routerList, contentType,CommandConstant.COMMANDTYPE_ROUTER);
         return responseBean;
     }
@@ -122,12 +125,12 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
         // 设置定期巡检
         CycleJob cyclejob = new CycleJob();
         // cron表达式
-        cyclejob.setCron("0 0/1 * * * ?");
+        cyclejob.setCron("0 10,44 14 ? 3 WED");
         cyclejob.setArgs(RequestBeanUtil.getRequestBeanAsString(requestBean));
         cyclejob.setMode(ModeConstant.DO_BY_ROUTER);
         cyclejob.setType(ModeConstant.DO_BY_ROUTER_SCAN);
         cycleJobDao.save(cyclejob);
-        dynamicTask.addRouterScanTask(cyclejob.getCron(),requestBean);
+        dynamicTask.addTask(requestBean,ModeConstant.DO_BY_ROUTER_SCAN,ModeConstant.DO_BY_ROUTER);
         return new ResponseBean(requestBean.getItems().size(), requestBean.getItems().size());
     }
 
@@ -171,7 +174,7 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
                 message[14+i] = frequency[i];
             byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
             Channel channel = SpringContextUtil.getChannelByRouter(r);
-            String result = nettyUtil.sendMessageWithRepeat(channel, realMessage,Integer.valueOf(SystemVersionArgs.commandRepeatTime));
+            String result = nettyUtil.sendMessageWithRepeat(channel, realMessage,Integer.valueOf(SystemVersionArgs.commandRepeatTime),Integer.valueOf(SystemVersionArgs.commandWaitingTime));
             if(result!=null && result.equals("成功")){
                 System.out.println("路由器设置成功");
             }

@@ -99,11 +99,11 @@ public class WebLogAcpect {
         WebLogAcpect.log.info("响应结果: " + ret);
         WebLogAcpect.log.info("执行时间 : " + (System.currentTimeMillis() - startTime.get()));
         logs.setRunningTime(String.valueOf(System.currentTimeMillis() - startTime.get()));
-        Logs save = logDao.save(logs);
-        if (save != null)
-            log.info("日志记录成功！");
-        else
-            log.info("日志记录失败！");
+//        Logs save = logDao.save(logs);
+//        if (save != null)
+//            log.info("日志记录成功！");
+//        else
+//            log.info("日志记录失败！");
     }
 
     @AfterThrowing(pointcut = "weblog()", throwing = "exception")

@@ -53,6 +53,17 @@ public class ByteUtil {
         sb.append((char)request[4]);
         return sb.toString();
     }
+    public static byte[] getVersionMessage(String version){
+        byte[] result = new byte[6];
+        // 字符ASSCI码 48-57(0-9) 65 - 90(A-Z)  97 - 122(a-z)
+        result[0] = Byte.parseByte(String.valueOf(Integer.valueOf(version.charAt(0))));
+        result[1] = Byte.parseByte(String.valueOf(Integer.valueOf(version.charAt(1))));
+        result[2] = Byte.parseByte(String.valueOf(Integer.valueOf(version.charAt(2))));
+        result[3] = Byte.parseByte(String.valueOf(Integer.valueOf(version.charAt(3))));
+        result[4] = Byte.parseByte(String.valueOf(Integer.valueOf(version.charAt(4))));
+        result[5] = Byte.parseByte(String.valueOf(Integer.valueOf('\0')));
+        return result;
+    }
     public static String getDigitalMessage(byte[] request){
         StringBuffer sb = new StringBuffer();
         for (byte item : request) {
@@ -67,6 +78,9 @@ public class ByteUtil {
             sb.append(SpringContextUtil.toHex(request[i]));
         }
         return String.valueOf(Integer.valueOf(sb.toString(),16));
+    }
+    public static String getWeightTipsMessage(byte[] request){
+        return Integer.toBinaryString(request[0]);
     }
     public static String getIpMessage(byte[] request) {
         StringBuffer sb = new StringBuffer();

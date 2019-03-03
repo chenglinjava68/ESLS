@@ -13,7 +13,7 @@ public class RequestBeanUtil {
     public static String getRequestBeanAsString(RequestBean requestBean){
         StringBuffer sb = new StringBuffer();
         for(RequestItem item:requestBean.getItems()){
-            sb.append(item.getQuery()+" "+item.getQueryString());
+            sb.append(item.getCron()+" "+item.getQuery()+" "+item.getQueryString());
             sb.append("-");
         }
         return sb.toString();
@@ -24,7 +24,7 @@ public class RequestBeanUtil {
         String sb[] = str.split("-");
         for(String s : sb){
             String[] s1 = s.split(" ");
-            RequestItem requestItem = new RequestItem(s1[0], s1[1]);
+            RequestItem requestItem = new RequestItem(s1[0], s1[1],s1[2]);
             items.add(requestItem);
         }
         return requestBean;

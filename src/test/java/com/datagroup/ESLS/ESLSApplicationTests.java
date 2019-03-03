@@ -1,7 +1,6 @@
 package com.datagroup.ESLS;
 
 import com.datagroup.ESLS.common.constant.SqlConstant;
-import com.datagroup.ESLS.dto.ByteAndRegion;
 import com.datagroup.ESLS.entity.*;
 import com.datagroup.ESLS.graphic.BarcodeUtil;
 import com.datagroup.ESLS.netty.command.CommandCategory;
@@ -14,8 +13,6 @@ import com.datagroup.ESLS.service.RouterService;
 import com.datagroup.ESLS.service.StyleService;
 import com.datagroup.ESLS.service.UserService;
 import com.datagroup.ESLS.utils.CopyUtil;
-import com.datagroup.ESLS.utils.ImageHelper;
-import com.datagroup.ESLS.utils.SpringContextUtil;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,15 +23,9 @@ import sun.font.FontDesignMetrics;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.*;
 import java.util.List;
 
 

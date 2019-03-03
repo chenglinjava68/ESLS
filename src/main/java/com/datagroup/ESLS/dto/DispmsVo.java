@@ -24,5 +24,7 @@ public class DispmsVo {
     private Integer fontSize;
     // status代表是否要显示
     private Byte status;
-    private Byte isLineation;
+    private String imageUrl;
+    private String backup;
+    private String regionId;
 }

@@ -33,7 +33,7 @@ public class TagUtil {
                 return tagsAndRouters.get(i);
         return null;
     }
-    public static String judgeResultAndSettingTag(String result,long begin,Tag tag){
+    public static synchronized String judgeResultAndSettingTag(String result,long begin,Tag tag){
         TagService tagService = ((TagService)SpringContextUtil.getBean("TagService"));
         if ("成功".equals(result)) {
             Tag newTag = SettingUtil.settingTag(tag, begin);
@@ -75,11 +75,18 @@ public class TagUtil {
         }
         return result;
     }
-    public static void setIsNotWorking(List<Tag> tags){
+    public static void setTagIsNotWorking(List<Tag> tags){
         TagService tagService = (TagService)SpringContextUtil.getBean("TagService");
         for(Tag tag:tags){
             tag.setIsWorking((byte) 0);
             tagService.saveOne(tag);
+        }
+    }
+    public static void setRouterIsNotWorking(List<Router> routers){
+        RouterService routerService = (RouterService)SpringContextUtil.getBean("RouterService");
+        for(Router r:routers){
+            r.setIsWorking((byte) 0);
+            routerService.saveOne(r);
         }
     }
 }

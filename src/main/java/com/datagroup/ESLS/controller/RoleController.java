@@ -119,7 +119,7 @@ public class RoleController {
         return new ResponseEntity<>(ResultBean.success("删除失败！没有指定ID的角色"), HttpStatus.BAD_REQUEST);
     }
     @ApiOperation("为指定ID的角色添加权限")
-    @PutMapping("/role/addPerm/{id}")
+    @PostMapping("/role/addPerm/{id}")
     public ResponseEntity<ResultBean> addRoleAndPermission(@PathVariable Long id,@RequestBody @ApiParam("权限信息ID集合") List<Long> longList) {
         int sum = 0;
         Optional<Role> role = roleService.findById(id);
@@ -142,7 +142,7 @@ public class RoleController {
         return new ResponseEntity<>(ResultBean.success(new ResponseBean(longList.size(),sum)), HttpStatus.OK);
     }
     @ApiOperation("为指定ID的用户添加角色")
-    @PutMapping("/role/addRole/{id}")
+    @PostMapping("/role/addRole/{id}")
     public ResponseEntity<ResultBean> addUserAndRole(@PathVariable Long id,@RequestBody @ApiParam("角色信息ID集合") List<Long> longList) {
         int sum = 0;
         User user = userService.findById(id);

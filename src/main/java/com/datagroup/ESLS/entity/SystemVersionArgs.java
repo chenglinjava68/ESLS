@@ -18,8 +18,8 @@ public class SystemVersionArgs {
     public static Timestamp date;
 
     public static String tokenAliveTime;
-    public static String commandRepeatTime;
     public static String packageLength;
+    public static String commandRepeatTime;
     public static String commandWaitingTime;
     @PostConstruct
     public void init(){

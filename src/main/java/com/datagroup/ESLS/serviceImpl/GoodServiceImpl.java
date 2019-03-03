@@ -81,7 +81,7 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
                 if(sourceData!=null && targetData!=null && !sourceData.equals(targetData)){
                     System.out.println(column+"不同");
                     if(!regionNames.contains(column)) {
-                            regionNames += (column + " ");
+                        regionNames += (column + " ");
                     }
                 }
             }
@@ -120,12 +120,15 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
                     }
                 }
             }
+            List<Tag> tags = tagDao.findByGoodId(good.getId());
+            for( Tag tag :tags){
+                //标签等待更新
+                tag.setWaitUpdate(0);
+            }
             // 0为等待更新
             good.setWaitUpdate(0);
             good.setRegionNames(regionNames);
         }
-        // 发送更新命令
-        updateGoods();
         return goodDao.save(good);
     }
 
@@ -230,6 +233,12 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
             }
             else
                 responseBean = SendCommandUtil.updateTagStyle(tags);
+            for(Good good:goods){
+                // 商品改价置1更新完毕
+                good.setWaitUpdate(1);
+                good.setRegionNames(null);
+                goodDao.save(good);
+            }
         }
         catch (Exception e) {
             e.printStackTrace();

@@ -47,5 +47,15 @@ category:
     TAGREGISTY:
       command_class: 0x02
       command_id: 0x01
+    APREAD:
+      command_class: 0x09
+      command_id: 0x12
+    BALANCEDATA:
+      command_class: 0x08
+      command_id: 0x01
+    BALANCEPOWER:
+      command_class: 0x08
+      command_id: 0x04
+
 
 

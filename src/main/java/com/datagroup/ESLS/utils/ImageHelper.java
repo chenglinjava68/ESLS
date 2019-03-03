@@ -2,14 +2,18 @@ package com.datagroup.ESLS.utils;
 
 import com.datagroup.ESLS.common.constant.StyleType;
 import com.datagroup.ESLS.common.constant.TableConstant;
+import com.datagroup.ESLS.common.response.ByteResponse;
+import com.datagroup.ESLS.common.response.ResponseBean;
 import com.datagroup.ESLS.dto.ByteAndRegion;
 import com.datagroup.ESLS.entity.Dispms;
 import com.datagroup.ESLS.entity.Good;
+import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.graphic.BarCode;
 import com.datagroup.ESLS.graphic.BarcodeUtil;
 import com.datagroup.ESLS.graphic.QRCode;
 import com.datagroup.ESLS.service.DispmsService;
 import com.datagroup.ESLS.service.GoodService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import sun.font.FontDesignMetrics;
 
@@ -24,8 +28,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
+@Slf4j
 public class ImageHelper {
     public static ByteAndRegion getImageByType1(Dispms dispM,String styleNumber,Good good) throws Exception {
         DispmsService dispmsService = (DispmsService) SpringContextUtil.getBean("DispmsService");
@@ -51,7 +58,8 @@ public class ImageHelper {
         // 二维码
         if (columnType.contains(StringUtil.QRCODE) ) {
             int value = Math.min(get8Number(imageWidth), get8Number(imageHeight));
-            bufferedImage = QRCode.encode(dispM.getText(), value, value);
+            BufferedImage image = QRCode.encode(dispM.getText(), value, value);
+            g2d.drawImage(image,0,0,null);
         }
         // 条形码
         else if (dispM.getColumnType().contains(StringUtil.BARCODE) ) {
@@ -68,7 +76,7 @@ public class ImageHelper {
             String result = SpringContextUtil.getSourceData("name", good);
             Dispms name = dispmsService.findByStyleIdAndColumnTypeAndSourceColumn(dispM.getStyle().getId(), StringUtil.Str, "name");
             int fontType = ColorUtil.getFontType(name.getFontType());
-            String[] leftArgs = ImageHelper.getWidthAndHeight(name.getFontFamily(), fontType, name.getFontSize(),StringUtil.Str, result,false);
+            String[] leftArgs = ImageHelper.getWidthAndHeight(name.getFontFamily(), fontType, name.getFontSize(),StringUtil.Str, result);
             returnDispms.setY(Integer.valueOf(leftArgs[1]));
             bufferedImage = createBackgroundImage(imageWidth, imageHeight);
             g2d = (Graphics2D) bufferedImage.getGraphics();
@@ -90,10 +98,11 @@ public class ImageHelper {
             ByteArrayInputStream in = new ByteArrayInputStream(bytes);
             bufferedImage = ImageIO.read(in);
         }
-        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\"+styleNumber+"\\"+dispM.getId()+columnType+" (x"+returnDispms.getX()+" y"+returnDispms.getY()+" w"+returnDispms.getWidth()+" h"+returnDispms.getHeight()+").bmp"));
+        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\"+styleNumber+"("+dispM.getStyle().getId()+")"+"\\"+dispM.getId()+columnType+" (x"+returnDispms.getX()+" y"+returnDispms.getY()+" w"+returnDispms.getWidth()+" h"+returnDispms.getHeight()+").bmp"));
         return new ByteAndRegion(changeImage(bufferedImage,styleNumber),returnDispms);
     }
     public static ByteAndRegion getImageByType2(Dispms dispM,String styleNumber,Good good) throws Exception {
+        DispmsService dispmsService = (DispmsService)SpringContextUtil.getBean("DispmsService");
         Dispms returnDispms = new Dispms();
         BeanUtils.copyProperties(dispM,returnDispms);
         returnDispms.setId(0);
@@ -105,8 +114,8 @@ public class ImageHelper {
         // 以下为含字符串或数字
         String s = StringUtil.getRealString(dispM,good);
         //获得最大宽
-        String[] args = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, dispM.getFontSize(),columnType, s,false);
-        imageWidth = Integer.valueOf(args[0]);
+        String[] args = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, dispM.getFontSize(),columnType, s);
+        imageWidth = dispM.getWidth();
         imageHeight = Integer.valueOf(args[1]);
         imageAscent = Integer.valueOf(args[2]);
         if (getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40)){
@@ -117,6 +126,8 @@ public class ImageHelper {
         }
         returnDispms.setWidth(imageWidth);
         returnDispms.setHeight(imageHeight);
+        // 存高
+        dispM.setHeight(imageHeight);
         BufferedImage bufferedImage = createBufferedImage(imageWidth, imageHeight);
         Graphics2D g2d = (Graphics2D) bufferedImage.getGraphics();
         // (红黑) 0红黑 1白 背景色
@@ -128,22 +139,78 @@ public class ImageHelper {
         //  数字
         if(columnType.equals(StringUtil.NUMBER)){
             String left = s.substring(0,s.indexOf(".")+1);
-            String[] leftArgs = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, dispM.getFontSize(), columnType, left, true);
-            String backup = dispM.getBackup();
-            if(backup.equals("1"))
-                g2d.drawLine(0,imageHeight/2,imageWidth,imageHeight/2);
-            g2d.drawString(left, 0,imageHeight);
             String right = s.substring(s.indexOf(".")+1);
-            g2d.drawString(right, Integer.valueOf(leftArgs[0]),get8Number(imageHeight-2*(imageHeight-imageAscent))+2);
-            System.out.println(Integer.valueOf(leftArgs[1]));
-//            g2d.drawString(right, Integer.valueOf(leftArgs[0]),Integer.valueOf(leftArgs[1]));
+            String[] leftArgs = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, dispM.getFontSize(), columnType, left);
+            String[] backup = dispM.getBackup().split("/");
+            if(Integer.valueOf(right)>0) {
+                String[] rightArgs = ImageHelper.getWidthAndHeight(dispM.getFontFamily(), fontType, Integer.valueOf(backup[1]), columnType, right);
+                // 左侧数字直接画
+                g2d.drawString(left, 0, imageAscent);
+                // 0/fontsize/left的宽我存
+                // 画划线
+                if (backup[0].equals("1")) {
+                    g2d.drawLine(0, imageHeight / 2, Integer.valueOf(leftArgs[0]), imageHeight / 2);
+                    g2d.drawLine(Integer.valueOf(leftArgs[0]), Integer.valueOf(rightArgs[1]) / 2, Integer.valueOf(leftArgs[0]) + Integer.valueOf(rightArgs[0]), Integer.valueOf(rightArgs[1]) / 2);
+                }
+                font = new Font(dispM.getFontFamily(), fontType, Integer.valueOf(backup[1]));
+                g2d.setFont(font);
+                // 画右侧数字 改变画笔
+                g2d.drawString(right, Integer.valueOf(leftArgs[0]), Integer.valueOf(rightArgs[2]));
+                dispM.setText(s);
+            }
+            else {
+                g2d.drawString(left.substring(0,left.length()-1), 0,imageAscent);
+                if(backup[0].equals("1")) {
+                    g2d.drawLine(0, imageHeight / 2, Integer.valueOf(leftArgs[0]), imageHeight / 2);
+                }
+                dispM.setText(left);
+            }
+            // 还是要存fontSize
+            if (backup.length == 2)
+                dispM.setBackup(dispM.getBackup() + "/" + leftArgs[0]);
+            else {
+                String[] backup1 = dispM.getBackup().split("/");
+                dispM.setBackup(backup1[0] + "/" + backup1[1] + "/" + leftArgs[0]);
+            }
         }
         // 字符串
         else if(columnType.contains(StringUtil.Str)){
             g2d.drawString(s, 0,imageAscent);
+            // 字符串的宽
+            //dispM.setBackup(args[0]);
+            dispM.setText(s);
         }
-        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\"+styleNumber+"\\"+dispM.getId()+columnType+" (x"+returnDispms.getX()+" y"+returnDispms.getY()+" w"+returnDispms.getWidth()+" h"+returnDispms.getHeight()+").bmp"));
+        dispmsService.saveOne(dispM);
+        ImageIO.write(bufferedImage, "BMP", new File("D:\\styles\\"+styleNumber+"("+dispM.getStyle().getId()+")"+"\\"+dispM.getId()+columnType+" (x"+returnDispms.getX()+" y"+returnDispms.getY()+" w"+returnDispms.getWidth()+" h"+returnDispms.getHeight()+").bmp"));
         return new ByteAndRegion(changeImage(bufferedImage,styleNumber),returnDispms);
+    }
+    public static synchronized ByteResponse getByteResponse(Tag tag) throws IOException {
+        List<Dispms> dispmses = (List<Dispms>)tag.getStyle().getDispmses();
+        List<Dispms> dispmsesList = new ArrayList<>();
+        Good good = tag.getGood();
+        String regionNames = good.getRegionNames();
+        boolean isRegion = !StringUtil.isEmpty(regionNames)?true:false;
+        ByteResponse byteResponse;
+        // 改价只更改区域
+        if(isRegion){
+            for(Dispms dispms:dispmses){
+                if(dispms.getStatus()!=null && dispms.getStatus()==1 && regionNames.contains(dispms.getSourceColumn())) {
+                    dispmsesList.add(dispms);
+                }
+            }
+            log.info("区域:"+dispmsesList.size());
+            byteResponse = SpringContextUtil.getRegionRequest(dispmsesList, tag.getStyle().getStyleNumber(), good);
+        }
+        else{
+            for(int i=0 ;i<dispmses.size();i++) {
+                Dispms dispms = dispmses.get(i);
+                if ( dispms.getStatus() == 1)
+                    dispmsesList.add(dispmses.get(i));
+            }
+            log.info("全局:"+dispmsesList.size());
+            byteResponse = SpringContextUtil.getRequest(dispmsesList, tag.getStyle().getStyleNumber(), good);
+        }
+        return byteResponse;
     }
     public static Dispms getText(Dispms dispM, Good good) {
         if(dispM.getSourceColumn().equalsIgnoreCase("0")) {
@@ -193,12 +260,10 @@ public class ImageHelper {
         }
         return newdata;
     }
-    public static String[] getWidthAndHeight(String name, int style, int size, String columnType,String realString,boolean flag){
-        if(columnType.contains(StringUtil.NUMBER) && !flag){
-            realString = "10000.00";
-        }
+    public static String[] getWidthAndHeight(String name, int style, int size, String columnType,String realString){
         StringBuffer sb = new StringBuffer();
         Font font = new Font(name, style, size);
+
         FontDesignMetrics metrics = FontDesignMetrics.getMetrics(font);
         sb.append(metrics.stringWidth(realString)+" ");
         sb.append(metrics.getHeight()+" ");

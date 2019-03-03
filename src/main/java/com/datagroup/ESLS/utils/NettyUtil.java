@@ -6,32 +6,48 @@ import com.datagroup.ESLS.netty.client.NettyClient;
 import com.datagroup.ESLS.netty.command.CommandConstant;
 import com.datagroup.ESLS.netty.server.ServerChannelHandler;
 import io.netty.channel.Channel;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-
+@Slf4j
 public class NettyUtil{
     // 单例模式
     @Autowired
     private ExecutorService executorService;
-    public String sendMessage(Channel channel, byte[] message) {
+    public String sendMessageWithRepeat(Channel channel, byte[] message,int time,int waitingTime){
+        waitFreeRouter(channel);
+        String result = sendMessage(channel, message,waitingTime);
+        SpringContextUtil.removeWorkingChannel(channel);
+        for(int i=0;i<time-1;i++){
+            if(result==null|| result.equals("失败")) {
+                waitFreeRouter(channel);
+                result = sendMessage(channel, message,waitingTime);
+                SpringContextUtil.removeWorkingChannel(channel);
+            }
+            if(result!=null && (result.equals("成功") || result.equals("通讯超时")))
+                return result;
+        }
+        return "通讯"+time+"次超时";
+    }
+    public String sendMessage(Channel channel, byte[] message,int waitingTime) {
         SpringContextUtil.addWorkingChannel(channel);
         try {
             //   ExecutorService executorService = Executors.newSingleThreadExecutor();
             NettyClient nettyClient = new NettyClient(channel, message);
             Future future = executorService.submit(nettyClient);
             long begin = System.currentTimeMillis();
-            Integer commandWaitingTime = Integer.valueOf(SystemVersionArgs.commandWaitingTime);
+            Integer commandWaitingTime = waitingTime;
             while(!future.isDone()){
                 long end = System.currentTimeMillis();
                 if((end - begin)> commandWaitingTime) {
-                    System.out.println("NettyUtil--sendMessage : 命令没有响应");
+                    log.info("NettyUtil--sendMessage : 命令没有响应");
                     ServerChannelHandler serverChannelHandler = SpringContextUtil.serverChannelHandler;
-                    System.out.println("startAndWrite 开始："+serverChannelHandler.getMapSize());
+                    log.info("sendMessage 开始："+serverChannelHandler.getMapSize());
                     serverChannelHandler.removeMapWithKey(channel, message);
-                    System.out.println("startAndWrite 结束："+serverChannelHandler.getMapSize());
+                    log.info("sendMessage 结束："+serverChannelHandler.getMapSize());
                     future.cancel(true);
                     return null;
                 }
@@ -42,28 +58,9 @@ public class NettyUtil{
         }
         return null;
     }
-    public String sendMessageWithRepeat(Channel channel, byte[] message,int time){
-        waitFreeRouter(channel);
-        String result = sendMessage(channel, message);
-        SpringContextUtil.removeWorkingChannel(channel);
-        for(int i=0;i<time-1;i++){
-            if(result==null|| result.equals("失败")) {
-                result = sendMessage(channel, message);
-                SpringContextUtil.removeWorkingChannel(channel);
-            }
-            if(result!=null && (result.equals("成功") || result.equals("通讯超时")))
-                return result;
-        }
-        System.out.println("NettyUtil--sendMessageWithRepeat : 工作路由器数量:"+SpringContextUtil.getWorkingChannel().size());
-        return "通讯"+time+"次超时";
-    }
-    public static void waitFreeRouter(Channel channel){
+    public static synchronized void waitFreeRouter(Channel channel){
         while(true) {
             //路由器不工作时退出循环
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-            }
             if(!SpringContextUtil.isWorking(channel))
                 break;
         }
@@ -79,7 +76,7 @@ public class NettyUtil{
         List<TagsAndRouter> tagsAndRouters = TagUtil.splitTagsByRouter(tags);
         for (TagsAndRouter tagsAndRouter : tagsAndRouters) {
             Channel channel = SpringContextUtil.getChannelByRouter(tagsAndRouter.getRouter().getId());
-            sendMessageWithRepeat(channel, CommandConstant.COMMAND_BYTE.get(CommandConstant.ROUTERAWAKEOVER), 1);
+            sendMessageWithRepeat(channel, CommandConstant.COMMAND_BYTE.get(CommandConstant.ROUTERAWAKEOVER), 1,100);
         }
     }
 }

@@ -62,7 +62,11 @@ public class UserServiceImpl extends BaseServiceImpl implements UserService {
 
     @Override
     public User findById(Long id) {
-        return userDao.findById(id).get();
+        Optional<User> user = userDao.findById(id);
+        if(user.isPresent())
+            return userDao.findById(id).get();
+        else
+            return null;
     }
 
     @Override

@@ -8,7 +8,7 @@ import lombok.ToString;
 
 import javax.persistence.*;
 import java.io.Serializable;
-import java.util.Objects;
+
 @JsonIdentityInfo(
         generator = ObjectIdGenerators.PropertyGenerator.class,
         property = "id")
@@ -57,6 +57,8 @@ public class Dispms implements Serializable {
     private String imageUrl;
     @Column(name = "backup")
     private String backup;
+    @Column(name = "regionId")
+    private String regionId;
     @ManyToOne
     @JoinColumn(name = "styleid", referencedColumnName = "id")
     @JsonIgnore

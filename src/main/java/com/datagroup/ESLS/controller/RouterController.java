@@ -3,6 +3,7 @@ package com.datagroup.ESLS.controller;
 import com.datagroup.ESLS.aop.Log;
 import com.datagroup.ESLS.common.constant.TableConstant;
 import com.datagroup.ESLS.common.request.RequestBean;
+import com.datagroup.ESLS.common.request.RequestItem;
 import com.datagroup.ESLS.common.response.ResponseBean;
 import com.datagroup.ESLS.common.response.ResultBean;
 import com.datagroup.ESLS.dto.RouterVo;
@@ -12,6 +13,7 @@ import com.datagroup.ESLS.service.RouterService;
 import com.datagroup.ESLS.service.ShopService;
 import com.datagroup.ESLS.utils.ConditionUtil;
 import com.datagroup.ESLS.utils.CopyUtil;
+import com.datagroup.ESLS.utils.SendCommandUtil;
 import io.swagger.annotations.*;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
 import org.springframework.beans.BeanUtils;
@@ -132,6 +134,7 @@ public class RouterController {
     @ApiOperation("根据指定属性更换路由器")
     @PutMapping("/router/change")
     @Log("更换路由器")
+    @RequiresPermissions("更换路由器")
     public ResponseEntity<ResultBean> changeRouter(@RequestParam @ApiParam("源字段名") String sourceQuery,@RequestParam @ApiParam("源字段值") String sourceQueryString,@RequestParam @ApiParam("目的字段名") String targetQuery,@RequestParam  @ApiParam("目的字段值") String targetQueryString ){
         ResponseBean response = routerService.changeRouter(sourceQuery, sourceQueryString, targetQuery, targetQueryString);
         if(!response.isError())
@@ -145,6 +148,7 @@ public class RouterController {
             @ApiImplicitParam(name = "mode", value = " 0为指定路由器巡检 1定期巡检", dataType = "int", paramType = "query")
     })
     @PutMapping("/router/scan")
+    @RequiresPermissions("路由器巡检")
     public ResponseEntity<ResultBean> routerScan(@RequestBody @ApiParam("路由器信息集合") RequestBean requestBean,@RequestParam Integer mode) {
         ResponseBean responseBean;
         if(mode == 0)
@@ -156,8 +160,49 @@ public class RouterController {
     // 路由器设置
     @ApiOperation("发送路由器设置命令")
     @PutMapping("/router/setting")
+    @RequiresPermissions("发送路由器设置命令")
     public ResponseEntity<ResultBean> routerSetting(@RequestBody @ApiParam("路由器信息集合") RequestBean requestBean) {
         ResponseBean responseBean = routerService.settingRouter(requestBean);
+        return new ResponseEntity<>(ResultBean.success(responseBean),HttpStatus.OK);
+    }
+
+    // AP信息写入
+    @ApiOperation("AP测试命令")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "mode", value = " 0AP信息写入(3者) 1AP信息读取 2AP发送无线帧（channelId） 3AP停止发送无线帧 4AP接收无线帧（channelId） 5AP停止接收无线帧", dataType = "int", paramType = "query")
+    })
+    @PutMapping("/router/test")
+    @RequiresPermissions("AP测试")
+    public ResponseEntity<ResultBean> routerTest(@RequestBody @ApiParam("路由器信息集合") RequestBean requestBean,@RequestParam(required = false) String barCode,@RequestParam(required = false) String channelId,@RequestParam(required = false) String hardVersion,@RequestParam Integer mode) {
+        List<Router> routerList = new ArrayList<>();
+        for (RequestItem items : requestBean.getItems()) {
+            routerList.addAll(routerService.findByArrtribute(TableConstant.TABLE_ROUTERS, items.getQuery(), items.getQueryString(), Router.class));
+        }
+        ResponseBean responseBean = new ResponseBean(0,0);
+        // 0AP信息写入
+        if(mode==0){
+            responseBean = SendCommandUtil.sendAPWrite(routerList, barCode, channelId, hardVersion);
+        }
+        // 1AP信息读取
+        else if(mode==1){
+            responseBean = SendCommandUtil.sendAPRead(routerList);
+        }
+        // 2AP发送无线帧
+        else if(mode==2){
+            responseBean = SendCommandUtil.sendAPByChannelId(routerList, channelId);
+        }
+        // 3AP停止发送无线帧
+        else if(mode==3){
+            responseBean = SendCommandUtil.sendAPByChannelIdStop(routerList);
+        }
+        // 4AP接收无线帧
+        else if(mode==4){
+            responseBean = SendCommandUtil.sendAPReceiveByChannelId(routerList, channelId);
+        }
+        // 5AP停止接收无线帧
+        else if(mode==5){
+            responseBean = SendCommandUtil.sendAPReceiveByChannelIdStop(routerList);
+        }
         return new ResponseEntity<>(ResultBean.success(responseBean),HttpStatus.OK);
     }
 }

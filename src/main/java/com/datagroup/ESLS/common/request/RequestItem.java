@@ -12,4 +12,9 @@ public class RequestItem {
         this.query = query;
         this.queryString = queryString;
     }
+    public RequestItem(String cron,String query,String queryString){
+        this.cron = cron;
+        this.query = query;
+        this.queryString = queryString;
+    }
 }

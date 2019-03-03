@@ -3,6 +3,7 @@ package com.datagroup.ESLS.cycleJob;
 import com.datagroup.ESLS.common.constant.ModeConstant;
 import com.datagroup.ESLS.common.constant.SqlConstant;
 import com.datagroup.ESLS.common.request.RequestBean;
+import com.datagroup.ESLS.common.request.RequestItem;
 import com.datagroup.ESLS.dao.BaseDao;
 import com.datagroup.ESLS.dao.CycleJobDao;
 import com.datagroup.ESLS.entity.CycleJob;
@@ -70,11 +71,11 @@ public class DynamicTask {
         }
         @Override
         public void run() {
-            if(mode.equals(ModeConstant.DO_BY_TAG)) {
+            if(mode.equals(ModeConstant.DO_BY_TAG_CYCLE)) {
                 System.out.println("对标签标签定期刷新:" + new Date());
                 tagService.flushTags(requestBean);
             }
-            else if(mode.equals(ModeConstant.DO_BY_ROUTER)) {
+            else if(mode.equals(ModeConstant.DO_BY_ROUTER_CYCLE)) {
                 System.out.println("对路由器下的标签定期刷新:" + new Date());
                 tagService.flushTagsByRouter(requestBean);
             }
@@ -89,11 +90,11 @@ public class DynamicTask {
         }
         @Override
         public void run() {
-            if(mode.equals(ModeConstant.DO_BY_TAG)) {
+            if(mode.equals(ModeConstant.DO_BY_TAG_CYCLE)) {
                 System.out.println("对指定的标签定期巡检:" + new Date());
                 tagService.scanTags(requestBean);
             }
-            else if(mode.equals(ModeConstant.DO_BY_ROUTER)) {
+            else if(mode.equals(ModeConstant.DO_BY_ROUTER_CYCLE)) {
                 System.out.println("对指定的路由器的所有标签定期巡检:" + new Date());
                 tagService.scanTagsByRouter(requestBean);
             }
@@ -191,17 +192,23 @@ public class DynamicTask {
                 addChangeGoodsScanTask(job.getCron(), job.getArgs());
                 continue;
             }
-
             RequestBean requestBean = RequestBeanUtil.stringtoRequestBean(job.getArgs());
+            addTask(requestBean,job.getType(),job.getMode());
+        }
+    }
+    public void addTask(RequestBean requestBean,Integer type,Integer mode){
+        for(RequestItem item : requestBean.getItems()) {
+            RequestBean requestBeanItem = new RequestBean();
+            requestBeanItem.getItems().add(item);
             // 标签刷新（0对标签 1对路由器）
-            if(job.getType().equals(ModeConstant.DO_BY_TAG_FLUSH))
-                addFlushTask(job.getCron(),requestBean,job.getMode());
-                // 标签巡检（0对标签 1对路由器）
-            else if(job.getType().equals(ModeConstant.DO_BY_TAG_SCAN))
-                addTagScanTask(job.getCron(),requestBean,job.getMode());
-                // 路由器巡检
-            else if(job.getType().equals(ModeConstant.DO_BY_ROUTER_SCAN))
-                addRouterScanTask(job.getCron(),requestBean);
+            if (type.equals(ModeConstant.DO_BY_TAG_FLUSH))
+                addFlushTask(item.getCron(), requestBeanItem, mode);
+            // 标签巡检（0对标签 1对路由器）
+            else if (type.equals(ModeConstant.DO_BY_TAG_SCAN))
+                addTagScanTask(item.getCron(), requestBeanItem, mode);
+            // 路由器巡检
+            else if (type.equals(ModeConstant.DO_BY_ROUTER_SCAN))
+                addRouterScanTask(item.getCron(), requestBeanItem);
         }
     }
 }
