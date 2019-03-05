@@ -134,47 +134,35 @@ public class CommonController {
         }
         return new ResponseEntity<>(ResultBean.success("文件上传成功"), HttpStatus.OK);
     }
-    @ApiOperation("设置命令等待时间(单位为毫秒)")
+    @ApiImplicitParams({
+            @ApiImplicitParam(name = "mode", value = " 0设置命令等待时间(单位为毫秒) 1设置token存活时间(单位为毫秒) 2设置命令重发次数 3设置命令包的最大长度（不得超过220字节）", dataType = "int", paramType = "query")
+    })
+    @ApiOperation("设置通讯命令时间参数")
     @PutMapping("/common/command/time")
-    @RequiresPermissions("设置命令参数")
-    public ResponseEntity<ResultBean> setCommandTime(@ApiParam("通讯超时时间") @RequestParam @Min(message = "data.time.min",value = 0) Integer time){
+        @RequiresPermissions("设置通讯命令时间参数")
+    public ResponseEntity<ResultBean> setCommandTime(@ApiParam("时间") @RequestParam @Min(message = "data.time.min",value = 0) Integer time,@RequestParam Integer mode){
         SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
-        systemVersion.setCommandWaitingTime(String.valueOf(time));
-        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
-        SystemVersion result = systemVersionDao.save(systemVersion);
-        systemVersionArgs.init();
-        return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
-    }
-    @ApiOperation("设置token存活时间(单位为毫秒)")
-    @PutMapping("/common/token/time")
-    @RequiresPermissions("设置命令参数")
-    public ResponseEntity<ResultBean> setTokenTime(@ApiParam("token存活时间") @RequestParam @Min(message = "data.time.min",value = 0) Long time){
-        SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
-        systemVersion.setTokenAliveTime(String.valueOf(time));
-        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
-        SystemVersion result = systemVersionDao.save(systemVersion);
-        systemVersionArgs.init();
-        return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
-    }
-    @ApiOperation("设置命令重发次数")
-    @PutMapping("/common/command/repeatTime")
-    @RequiresPermissions("设置命令参数")
-    public ResponseEntity<ResultBean> setCommandRepeatTime(@ApiParam("命令重发次数") @RequestParam @Min(message = "data.time.min",value = 0) Long time){
-        SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
-        systemVersion.setCommandRepeatTime(String.valueOf(time));
-        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
-        SystemVersion result = systemVersionDao.save(systemVersion);
-        systemVersionArgs.init();
-        return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
-    }
-    @ApiOperation("设置命令包的最大长度（不得超过220字节）")
-    @PutMapping("/common/command/packageLength")
-    @RequiresPermissions("设置命令参数")
-    public ResponseEntity<ResultBean> setPackageLength(@ApiParam("命令包的最大长度") @RequestParam @Min(message = "data.time.min",value = 0) Long time){
-        SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
-        systemVersion.setPackageLength(String.valueOf(time));
-        systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
-        SystemVersion result = systemVersionDao.save(systemVersion);
+        SystemVersion result = null;
+        if(mode == 0) {
+            systemVersion.setCommandWaitingTime(String.valueOf(time));
+            systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+            result = systemVersionDao.save(systemVersion);
+        }
+        else if(mode == 1){
+            systemVersion.setTokenAliveTime(String.valueOf(time));
+            systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+            result = systemVersionDao.save(systemVersion);
+        }
+        else if(mode == 2){
+            systemVersion.setCommandRepeatTime(String.valueOf(time));
+            systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+            result = systemVersionDao.save(systemVersion);
+        }
+        else if(mode == 3){
+            systemVersion.setPackageLength(String.valueOf(time));
+            systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+            result = systemVersionDao.save(systemVersion);
+        }
         systemVersionArgs.init();
         return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);
     }

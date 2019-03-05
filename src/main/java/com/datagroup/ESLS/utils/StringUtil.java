@@ -5,8 +5,6 @@ import com.datagroup.ESLS.entity.Good;
 import org.apache.commons.lang3.StringUtils;
 
 public class StringUtil {
-    public static String NUMBER_LEFT = "数字左侧";
-    public static String NUMBER_RIGHT = "数字右侧";
     public static String NUMBER = "数字";
     public static String BACKGROUND = "背景";
     public static String PHOTO = "图片";
@@ -35,10 +33,5 @@ public class StringUtil {
             sb.append(dispM.getEndText());
         }
         return sb.toString();
-    }
-    public static boolean isDigitalString(String sourceColumn){
-        if(sourceColumn.contains(NUMBER)  || sourceColumn.contains(NUMBER_LEFT)  || sourceColumn.contains(NUMBER_RIGHT) )
-            return true;
-        return false;
     }
 }

@@ -120,6 +120,7 @@ public class RoleController {
     }
     @ApiOperation("为指定ID的角色添加权限")
     @PostMapping("/role/addPerm/{id}")
+    @RequiresPermissions("为指定ID的角色添加权限")
     public ResponseEntity<ResultBean> addRoleAndPermission(@PathVariable Long id,@RequestBody @ApiParam("权限信息ID集合") List<Long> longList) {
         int sum = 0;
         Optional<Role> role = roleService.findById(id);
@@ -143,6 +144,7 @@ public class RoleController {
     }
     @ApiOperation("为指定ID的用户添加角色")
     @PostMapping("/role/addRole/{id}")
+    @RequiresPermissions("为指定ID的用户添加角色")
     public ResponseEntity<ResultBean> addUserAndRole(@PathVariable Long id,@RequestBody @ApiParam("角色信息ID集合") List<Long> longList) {
         int sum = 0;
         User user = userService.findById(id);

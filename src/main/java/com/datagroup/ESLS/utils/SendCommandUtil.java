@@ -14,6 +14,27 @@ import java.util.ArrayList;
 import java.util.List;
 @Slf4j
 public class SendCommandUtil {
+    public static ResponseBean sendCommandWithRouters(List<Router> routers, String contentType, Integer messageType){
+        int sum= routers.size();
+        ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
+        byte[] content = CommandConstant.COMMAND_BYTE.get(contentType);
+        byte[] message = CommandConstant.getBytesByType(null, content, messageType);
+        try{
+            for (Router router : routers) {
+                // 路由器未连接或禁用
+                if( router.getState()!=null && router.getState()==0) continue;
+                Channel channel = SpringContextUtil.getChannelByRouter(router);
+                if(channel == null) continue;
+                // 广播命令只发一次 广播命令没有响应
+                ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, message,router,System.currentTimeMillis(),1);
+                listenableFutures.add(result);
+            }
+        }
+        catch (Exception e){
+            log.info("SendCommandUtil - sendCommandWithRouters : "+e);
+        }
+        return new ResponseBean(sum, sum);
+    }
     public static ResponseBean sendCommandWithTags(List<Tag> tags,String contentType,Integer messageType){
         int sum=tags.size(), successNumber;
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
@@ -34,26 +55,6 @@ public class SendCommandUtil {
         //等待所有线程执行完在返回
         successNumber = waitAllThread(listenableFutures);
         return new ResponseBean(sum, successNumber);
-    }
-    public static ResponseBean sendCommandWithRouters(List<Router> routers, String contentType, Integer messageType){
-        int sum= routers.size();
-        ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
-        byte[] content = CommandConstant.COMMAND_BYTE.get(contentType);
-        byte[] message = CommandConstant.getBytesByType(null, content, messageType);
-        try{
-            for (Router router : routers) {
-                // 路由器未连接或禁用
-                if(router.getIsWorking()==0 || (router.getState()!=null && router.getState()==0)) continue;
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
-                // 广播命令只发一次 广播命令没有响应
-                ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, message,router,System.currentTimeMillis(),1);
-                listenableFutures.add(result);
-            }
-        }
-        catch (Exception e){
-            log.info("SendCommandUtil - sendCommandWithRouters : "+e);
-        }
-        return new ResponseBean(sum, sum);
     }
     public static ResponseBean sendCommandWithSettingRouters(List<Router> routers){
         int sum= routers.size(), successNumber;
@@ -95,7 +96,7 @@ public class SendCommandUtil {
         return new ResponseBean(sum, successNumber);
     }
     public static ResponseBean updateTagStyle(List<Tag> tags){
-        int sum= tags.size();
+        int sum= tags.size(),successNumber;
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try{
             for (Tag tag : tags) {
@@ -107,8 +108,8 @@ public class SendCommandUtil {
         catch (Exception e){
             System.out.println("SendCommandUtil--updateTagStyle : "+e);
         }
-        waitAllThread(listenableFutures);
-        return new ResponseBean(sum, sum);
+        successNumber = waitAllThread(listenableFutures);
+        return new ResponseBean(sum, successNumber);
     }
     public static ResponseBean sendAwakeMessage(List<byte[]> byteList,Router router,Integer messageType){
         int sum= byteList.size(), successNumber;
@@ -141,7 +142,7 @@ public class SendCommandUtil {
                     if (item.isDone()) {
                         sumBreak++;
                         listenableFutures.remove(i);
-                        log.info("waitAllThread : " + item.toString() + "响应结果:" + item.get());
+                        log.info(item.toString() + "最终响应结果:" + item.get());
                         if (item.get().equals("成功"))
                             listenableFuturesResults.add("成功");
                     }
@@ -334,8 +335,8 @@ public class SendCommandUtil {
             for (Tag tag : tags) {
                 byte[] message = new byte[3];
                 message[0] = 0x08;
-                message[0] = 0x01;
-                message[0] = 0x00;
+                message[1] = 0x01;
+                message[2] = 0x00;
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] realMessage = CommandConstant.getBytesByType(address, message, CommandConstant.COMMANDTYPE_TAG);
@@ -359,8 +360,8 @@ public class SendCommandUtil {
             for (Tag tag : tags) {
                 byte[] message = new byte[3];
                 message[0] = 0x08;
-                message[0] = 0x02;
-                message[0] = 0x00;
+                message[1] = 0x02;
+                message[2] = 0x00;
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] realMessage = CommandConstant.getBytesByType(address, message, CommandConstant.COMMANDTYPE_TAG);
@@ -384,8 +385,8 @@ public class SendCommandUtil {
             for (Tag tag : tags) {
                 byte[] message = new byte[3];
                 message[0] = 0x08;
-                message[0] = 0x03;
-                message[0] = 0x00;
+                message[1] = 0x03;
+                message[2] = 0x00;
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] realMessage = CommandConstant.getBytesByType(address, message, CommandConstant.COMMANDTYPE_TAG);
@@ -409,8 +410,8 @@ public class SendCommandUtil {
             for (Tag tag : tags) {
                 byte[] message = new byte[3];
                 message[0] = 0x08;
-                message[0] = 0x04;
-                message[0] = 0x00;
+                message[1] = 0x04;
+                message[2] = 0x00;
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] realMessage = CommandConstant.getBytesByType(address, message, CommandConstant.COMMANDTYPE_TAG);

@@ -1,22 +1,15 @@
 
 package com.datagroup.ESLS.utils;
 
-import com.datagroup.ESLS.common.constant.StyleNumberToHeight;
-import com.datagroup.ESLS.common.constant.StyleType;
-import com.datagroup.ESLS.common.response.ByteResponse;
-import com.datagroup.ESLS.dto.ByteAndRegion;
 import com.datagroup.ESLS.entity.*;
 import com.datagroup.ESLS.netty.server.ServerChannelHandler;
 import com.datagroup.ESLS.service.RouterService;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.FileUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.util.*;
@@ -26,180 +19,6 @@ import java.util.List;
 @Slf4j
 public class SpringContextUtil implements ApplicationContextAware {
     private static ApplicationContext applicationContext;
-    public static ByteResponse getRequest(List<Dispms> dispms,String styleNumber,Good good) throws IOException {
-        if(dispms.size()==0)
-            return null;
-        List<byte[]> allbyteList = new ArrayList<>();
-        byte[] firstByte = new byte[3+6+dispms.size()*12];
-        int i,j;
-        firstByte[0] = 0x03;
-        firstByte[1] = 0x01;
-        firstByte[2] = (byte) (6+dispms.size()*12);
-        for(j=0;j<styleNumber.length();j++)
-            firstByte[j+3] = (byte) styleNumber.charAt(j);
-        firstByte[7]  = '\0';
-        firstByte[8] = (byte) dispms.size();
-        FileUtils.deleteDirectory(new File("D:\\styles\\"+styleNumber+"("+dispms.get(0).getStyle().getId()+")"));
-        for (i = 0; i < dispms.size(); i++) {
-            try {
-                Dispms region = dispms.get(i);
-                ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
-                region = byteAndRegion.getRegion();
-                byte[] regionImage = byteAndRegion.getRegionBytes();
-                // 区域编号
-//                firstByte[(i * 12) + 9] = (byte) (i+1);
-                firstByte[(i * 12) + 9] = Byte.parseByte(region.getRegionId());
-                // 颜色
-                firstByte[(i * 12) + 10] = ColorUtil.getColorByte(region.getBackgroundColor(), region.getFontColor());
-                byte[] x, y, height, width;
-                if (ImageHelper.getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40)) {
-                    width = int2ByteArr(region.getWidth());
-                    height = int2ByteArr(region.getHeight());
-                    x = int2ByteArr(region.getX());
-                    y = int2ByteArr(region.getY());
-                    // x
-                    firstByte[(i * 12) + 11] = x[1];
-                    firstByte[(i * 12) + 12] = x[0];
-                    // y
-                    firstByte[(i * 12) + 13] = y[1];
-                    firstByte[(i * 12) + 14] = y[0];
-                } else {
-                    width = int2ByteArr(region.getWidth());
-                    height = int2ByteArr(region.getHeight());
-                    x = int2ByteArr(region.getX());
-                    y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber) - region.getY()-region.getHeight());
-//                      y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber) - region.getY());
-//                    x = int2ByteArr(region.getX());
-//                    y = int2ByteArr(region.getY());
-                    // x
-                    firstByte[(i * 12) + 11] = y[1];
-                    firstByte[(i * 12) + 12] = y[0];
-                    // y
-                    firstByte[(i * 12) + 13] = x[1];
-                    firstByte[(i * 12) + 14] = x[0];
-                }
-                byte[] length = int2ByteArr(regionImage.length);
-                // 长度
-                firstByte[(i * 12) + 15] = width[1];
-                firstByte[(i * 12) + 16] = width[0];
-                // 宽度
-                firstByte[(i * 12) + 17] = height[1];
-                firstByte[(i * 12) + 18] = height[0];
-                // 显示存储字节数
-                firstByte[(i * 12) + 19] = length[1];
-                firstByte[(i * 12) + 20] = length[0];
-                List<byte[]> byteList = getByteList(regionImage, Integer.valueOf(region.getRegionId()));
-                allbyteList.addAll(byteList);
-            }
-            catch (Exception e){
-                System.out.println("getRequest - " + e);
-            }
-        }
-        byte[] bytes = allbyteList.get(allbyteList.size() - 1);
-        bytes[4] = 0x01;
-        return new ByteResponse(firstByte,allbyteList);
-    }
-    public static ByteResponse getRegionRequest(List<Dispms> dispms,String styleNumber,Good good){
-        if(dispms.size()==0)
-            return null;
-        List<byte[]> allbyteList = new ArrayList<>();
-        for(int i = 0;i<dispms.size();i++){
-            Dispms region = dispms.get(i);
-            ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
-            region = byteAndRegion.getRegion();
-            byte[] regionImage = byteAndRegion.getRegionBytes();
-            List<byte[]> byteList = getByteList(regionImage,Integer.valueOf(region.getRegionId()));
-            allbyteList.addAll(byteList);
-        }
-        byte[] bytes = allbyteList.get(allbyteList.size() - 1);
-        bytes[4] = 0x01;
-        return new ByteResponse(null,allbyteList);
-    }
-    // 分包发送
-    public static List<byte[]> getByteList(byte[] regionImage,int number){
-        List<byte[]> byteList =  new ArrayList<>();
-        int i,j;
-        int packageLength = Integer.valueOf(SystemVersionArgs.packageLength);
-        int len = regionImage.length / packageLength;
-        int remainder = regionImage.length % packageLength;
-        if(regionImage.length>packageLength){
-            for(i=0;i<len;i++){
-                byte[] bytes = new byte[8 + packageLength];
-                bytes[0] = 0x03;
-                bytes[1] = 0x02;
-                // 长度
-                bytes[2] = (byte) (5 + packageLength);
-                // 编号
-                bytes[3] = (byte) number;
-                // 是否刷新
-                bytes[4] = 0x00;
-                byte[] loc = int2ByteArr(i * packageLength);
-                // 起始位置
-                bytes[5] = loc[1];
-                bytes[6] = loc[0];
-                // 数据长度
-                bytes[7] = (byte) (packageLength);
-                int begin = 8;
-                // 区域显示数据
-                for (j = i * packageLength; j < (i+1)*packageLength; j++)
-                    bytes[begin++] = regionImage[j];
-                byteList.add(bytes);
-            }
-            byte[] bytes = new byte[8 + remainder];
-            bytes[0] = 0x03;
-            bytes[1] = 0x02;
-            // 长度
-            bytes[2] = (byte) (5 + remainder);
-            // 编号
-            bytes[3] = (byte) number;
-            bytes[4] = 0x00;
-            byte[] loc = int2ByteArr(i * packageLength);
-            // 起始位置
-            bytes[5] = loc[1];
-            bytes[6] = loc[0];
-            // 数据长度
-            bytes[7] = (byte) (remainder);
-            int begin = 8;
-            // 区域显示数据
-            for (j = i * packageLength; j < i * packageLength+remainder; j++)
-                bytes[begin++] = regionImage[j];
-            byteList.add(bytes);
-        }
-        else {
-            byte[] bytes = new byte[8+regionImage.length];
-            bytes[0] = 0x03;
-            bytes[1] = 0x02;
-            // 长度
-            bytes[2] = (byte) (5+regionImage.length);
-            // 编号
-            bytes[3] = (byte) number;
-            // 是否刷新
-            bytes[4] = 0x00;
-            // 起始位置
-            bytes[5] = 0;
-            bytes[6] = 0;
-            // 数据长度
-            bytes[7] = (byte) (regionImage.length);
-            // 区域显示数据
-            for(i=0;i<regionImage.length;i++)
-                bytes[i+8] = regionImage[i];
-            byteList.add(bytes);
-        }
-        return byteList;
-    }
-    public static ByteAndRegion getRegionImage(Dispms dispM, String styleNumber,Good good) {
-        try {
-            FileUtil.createFileIfNotExist("D:\\styles\\",styleNumber+"("+dispM.getStyle().getId()+")");
-            String columnType = dispM.getColumnType();
-            if(!ImageHelper.getImageType(columnType))
-                return ImageHelper.getImageByType1(dispM,styleNumber,good);
-            else
-                return ImageHelper.getImageByType2(dispM,styleNumber,good);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        return null;
-    }
     // 把byte 转化为两位十六进制数
     public static String toHex(byte b) {
         String result = Integer.toHexString(b & 0xFF);
@@ -216,12 +35,6 @@ public class SpringContextUtil implements ApplicationContextAware {
             begin = begin-1;
             bytes[j] = (byte)(i >>8*begin);
         }
-        return bytes ;
-    }
-    public static byte[] int2ByteArr(int i){
-        byte[] bytes = new byte[2] ;
-        bytes[0] = (byte)(i >> 8) ;
-        bytes[1] = (byte)(i >> 0) ;
         return bytes ;
     }
     // 十进制整数转点分IP地址
@@ -434,18 +247,18 @@ public class SpringContextUtil implements ApplicationContextAware {
     }
     public static Map<String, Channel> channelIdGroup = new HashMap();
     public static ServerChannelHandler serverChannelHandler;
-    private static ArrayList<Channel> workingChannel = new ArrayList<>();
-    public static ArrayList<Channel> getWorkingChannel() {
+    private static ArrayList<String> workingChannel = new ArrayList<>();
+    public static ArrayList<String> getWorkingChannel() {
         return workingChannel;
     }
-    public static void addWorkingChannel(Channel channel){
-        workingChannel.add(channel);
+    public static synchronized void addWorkingChannel(String channelId){
+        workingChannel.add(channelId);
     }
-    public static void removeWorkingChannel(Channel channel){
-        workingChannel.remove(channel);
+    public static synchronized void removeWorkingChannel(String channelId){
+        workingChannel.remove(channelId);
     }
-    public static boolean isWorking(Channel channel){
-        return workingChannel.contains(channel);
+    public static synchronized boolean isWorking(String channelId){
+        return workingChannel.contains(channelId);
     }
 
 

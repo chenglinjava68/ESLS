@@ -126,6 +126,7 @@ public class GoodController {
     @ApiOperation("对绑定商品的所有标签内容进行更新(可单个 批量) 不指定put参数则对商品数据waitUpdate字段为0的数据进行更新")
     @PutMapping("/good/update")
     @Log("对商品绑定的所有标签内容进行更新(可单个 批量 改价) ")
+    @RequiresPermissions("商品改价")
     public ResponseEntity<ResultBean> updateGoods(@RequestBody(required = false) @ApiParam("商品信息集合") RequestBean requestBean){
         if(requestBean==null || requestBean.getItems().size()==0)
             return new ResponseEntity<>(new ResultBean(goodService.updateGoods()),HttpStatus.OK);
@@ -136,6 +137,7 @@ public class GoodController {
     @ApiOperation("通过商品属性获取其绑定的所有标签信息（连接符可取=或like）")
     @GetMapping("/good/binded")
     @Log("通过商品ID获取其绑定的所有标签信息")
+    @RequiresPermissions("通过商品ID获取其绑定的所有标签信息")
     public ResponseEntity<ResultBean> getBindTags(@RequestParam String query,@RequestParam String connection,@RequestParam String queryString){
         List<Tag> tags = goodService.getBindTags(query, connection, queryString);
         return new ResponseEntity<>(new ResultBean(CopyUtil.copyTag(tags)),HttpStatus.OK);
@@ -148,6 +150,7 @@ public class GoodController {
             @ApiImplicitParam(name = "rootFilePath", value = "文件根路径", dataType = "String", paramType = "query"),
             @ApiImplicitParam(name = "mode", value = "-1为商品基本数据 -2为商品变价数据", dataType = "int", paramType = "query")
     })
+    @RequiresPermissions("设置商品基本数据和商品变价文件路径及cron表达式（定期任务）")
     public ResponseEntity<ResultBean> setSchedule(@RequestParam String cron,@RequestParam String rootFilePath,@RequestParam Integer mode){
         boolean result = goodService.setScheduleTask(cron, rootFilePath, mode);
         if(result)
@@ -162,6 +165,7 @@ public class GoodController {
     @ApiImplicitParams({
             @ApiImplicitParam(name = "mode", value = "-1为商品基本数据 -2为商品变价数据", dataType = "int", paramType = "query")
     })
+    @RequiresPermissions("上传商品基本数据及变价数据文件")
     public ResponseEntity<ResultBean> uploadGoodData(@ApiParam(value = "文件信息", required = true) @RequestParam("file") MultipartFile file,@RequestParam Integer mode){
         boolean result = goodService.uploadGoodData(file, mode);
         if(result)

@@ -29,14 +29,6 @@ public class RequestBeanUtil {
         }
         return requestBean;
     }
-    public static String getRequestBeanAsString(List<Tag> tags){
-        StringBuffer sb = new StringBuffer();
-        for(Tag tag : tags){
-            sb.append("id "+tag.getId());
-            sb.append("-");
-        }
-        return sb.toString();
-    }
     public static List<Tag> getTagsByRequestBean(RequestBean requestBean){
         List tags = new ArrayList();
         Service service  = (Service)SpringContextUtil.getBean("BaseService");

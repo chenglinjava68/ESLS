@@ -109,8 +109,9 @@ public class PermissionController {
             return new ResponseEntity<>(ResultBean.success("删除成功"), HttpStatus.OK);
         return new ResponseEntity<>(ResultBean.success("删除失败！没有指定ID的权限"), HttpStatus.BAD_REQUEST);
     }
-    @ApiOperation("根据角色ID获得用户权限")
+    @ApiOperation("根据角色ID获得权限")
     @GetMapping("/permission/role/{id}")
+        @RequiresPermissions("根据角色ID获得权限")
     public ResponseEntity<ResultBean> getPermissionByRoleId(@PathVariable Long id) {
         Role role = roleDao.findById(id).get();
         if(role!=null){

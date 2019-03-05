@@ -126,77 +126,100 @@ public class ServerChannelHandler extends SimpleChannelInboundHandler<Object> {
         header[0] = req[8];
         header[1] = req[9];
         String handlerName = "handler" + header[0] + "" + header[1];
-        String key = ctx.channel().id().toString()+"-"+req[11]+req[12];
         // ACK
         if (promiseMap.size()>0 && CommandConstant.ACK.equals(CommandCategory.getCommandCategory(header))) {
+            String key;
+            if((req[11]== 2  && req[12] == 5) || (req[11]== 4  && req[12] == 7) )
+                key = ctx.channel().id().toString()+"-"+req[11]+req[12]+"-"+"00000000";
+            else
+                key = ctx.channel().id().toString()+"-"+req[11]+req[12]+"-"+SpringContextUtil.toHex(req[13])+SpringContextUtil.toHex(req[14])+SpringContextUtil.toHex(req[15])+SpringContextUtil.toHex(req[16]);
             SpringContextUtil.printBytes("key = "+key+" 接收ACK消息",req);
-            this.dataMap.put(key,"成功");
-            this.promiseMap.get(key).setSuccess();
+            if( !this.dataMap.containsKey(key)) {
+                this.dataMap.put(key, "成功");
+                this.promiseMap.get(key).setSuccess();
+            }
         }
         // NACK
         else if (promiseMap.size()>0 && CommandConstant.NACK.equals(CommandCategory.getCommandCategory(header))) {
+            String key;
+            if(req[11]== 2  && req[12] == 5)
+                key = ctx.channel().id().toString()+"-"+req[11]+req[12]+"-"+"0000";
+            else
+                key = ctx.channel().id().toString()+"-"+req[11]+req[12]+"-"+SpringContextUtil.toHex(req[13])+SpringContextUtil.toHex(req[14])+SpringContextUtil.toHex(req[15])+SpringContextUtil.toHex(req[16]);
             SpringContextUtil.printBytes("key = "+key+" 接收NACK消息",req);
             this.dataMap.put(key,"失败");
             this.promiseMap.get(key).setSuccess();
         }
         // 通讯超时
         else if (promiseMap.size()>0 && CommandConstant.OVERTIME.equals(CommandCategory.getCommandCategory(header))) {
+            String key = ctx.channel().id().toString()+"-"+req[11]+req[12]+"-"+SpringContextUtil.toHex(req[13])+SpringContextUtil.toHex(req[14])+SpringContextUtil.toHex(req[15])+SpringContextUtil.toHex(req[16]);
             SpringContextUtil.printBytes("key = "+key+" 接收通讯超时消息",req);
             this.dataMap.put(key,"通讯超时");
             this.promiseMap.get(key).setSuccess();
         }
         // tag巡检应答包
         else if(CommandConstant.TAGRESPONSE.equals(CommandCategory.getCommandCategory(header))){
-            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
-            key = ctx.channel().id().toString()+"-"+req[8]+req[9];
+            byte[] bytes = ByteUtil.splitByte(req, 11, req[10]);
+            String barCode = ByteUtil.getDigitalMessage(ByteUtil.splitByte(bytes, 0, 12));
+            String tagAddress = ByteUtil.getMergeMessage(SpringContextUtil.getAddressByBarCode(barCode));
+            String key =getRecieveKeyByChannelId(ctx.channel().id().toString()+"-"+req[8]+req[9],tagAddress);
+            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,bytes);
             SpringContextUtil.printBytes("key = "+key+" 接收tag巡检应答包",req);
-            this.dataMap.put(key,"成功");
-            this.promiseMap.get(key).setSuccess();
+            if(!isBroadcastCommand(req)) {
+                this.dataMap.put(key, "成功");
+                this.promiseMap.get(key).setSuccess();
+            }
         }
         // router巡检应答包
         else if(CommandConstant.ROUTERRESPONSE.equals(CommandCategory.getCommandCategory(header))){
+            //改为0000
+            String key = getSendKeyByChannelId(ctx.channel().id().toString(),req);
             ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute("handler23",ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
-            key = ctx.channel().id().toString()+"-"+req[8]+req[9];
             SpringContextUtil.printBytes("key = "+key+" 接收router巡检应答包",req);
             this.dataMap.put(key,"成功");
             this.promiseMap.get(key).setSuccess();
         }
         // AP读取应答包
         else  if(CommandConstant.APREAD.equals(CommandCategory.getCommandCategory(header))){
+            byte[] bytes = ByteUtil.splitByte(req, 11, req[10]);
+            String key = getSendKeyByChannelId(ctx.channel().id().toString(),req);
             System.out.println(handlerName);
-            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
-            key = ctx.channel().id().toString()+"-"+req[8]+req[9];
+            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,bytes);
             SpringContextUtil.printBytes("key = "+key+" 接收AP读取应答包消息",req);
             this.dataMap.put(key,"成功");
             this.promiseMap.get(key).setSuccess();
         }
         // 获取计量数据应答包
         else  if(CommandConstant.BALANCEDATA.equals(CommandCategory.getCommandCategory(header))){
-            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
-            key = ctx.channel().id().toString()+"-"+req[8]+req[9];
-            SpringContextUtil.printBytes("key = "+key+" 接收获取计量数据应答包消息",req);
+            byte[] bytes = ByteUtil.splitByte(req, 15, req[10]);
+            String key = getContentKeyByChannelId(ctx.channel().id().toString(),req);
+            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,bytes);
             this.dataMap.put(key,"成功");
             this.promiseMap.get(key).setSuccess();
         }
         // 获取电子秤电量应答包
         else  if(CommandConstant.BALANCEPOWER.equals(CommandCategory.getCommandCategory(header))){
-            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
-            key = ctx.channel().id().toString()+"-"+req[8]+req[9];
+            byte[] bytes = ByteUtil.splitByte(req, 15, req[10]);
+            String key = getContentKeyByChannelId(ctx.channel().id().toString(),req);
+            ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,bytes);
             SpringContextUtil.printBytes("key = "+key+" 接收获取电子秤电量应答包消息",req);
             this.dataMap.put(key,"成功");
             this.promiseMap.get(key).setSuccess();
         }
         // 路由器注册命令
         else if(CommandConstant.ROUTERREGISTY.equals(CommandCategory.getCommandCategory(header))){
+            String key = ctx.channel().id().toString();
             SpringContextUtil.printBytes("key = "+key+" 接收路由器注册消息",req);
             ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
         }
         // 标签注册命令
         else if(CommandConstant.TAGREGISTY.equals(CommandCategory.getCommandCategory(header))){
+            String key = ctx.channel().id().toString();
             SpringContextUtil.printBytes("key = "+key+" 接收标签注册消息",req);
             ((AsyncTask) SpringContextUtil.getBean("AsyncTask")).execute(handlerName,ctx.channel(), header,ByteUtil.splitByte(req,11,req[10]));
         }
         else{
+            String key = ctx.channel().id().toString();
             SpringContextUtil.printBytes("key = "+key+" 接收到其他消息",req);
         }
     }
@@ -205,17 +228,19 @@ public class ServerChannelHandler extends SimpleChannelInboundHandler<Object> {
     public ChannelPromise sendMessage(Channel channel, byte[] message) {
         if (channel == null)
             throw new IllegalStateException();
-        SpringContextUtil.printBytes("key = "+channel.id().toString()+"-"+message[8]+message[9]+" 主动发送命令包：",message);
+        String key =getSendKeyByChannelId(channel.id().toString(),message);
+        SpringContextUtil.printBytes("key = "+key+" 主动发送命令包：",message);
         ChannelPromise promise = channel.writeAndFlush(Unpooled.wrappedBuffer(message)).channel().newPromise();
-        promiseMap.put(channel.id().toString()+"-"+message[8]+message[9],promise);
+        if(!isBroadcastCommand(message))
+            promiseMap.put(key,promise);
         return promise;
     }
-    public String getData(Channel channel, byte[] message) {
-        return dataMap.get(channel.id().toString()+"-"+message[8]+message[9]);
+    public synchronized String getData(Channel channel, byte[] message) {
+        String key =getSendKeyByChannelId(channel.id().toString(),message);
+        return dataMap.get(key);
     }
-    public void removeMapWithKey(Channel channel, byte[] message) {
-        String key;
-        key = channel.id().toString()+"-"+message[8]+message[9];
+    public synchronized void removeMapWithKey(Channel channel, byte[] message) {
+        String key =getSendKeyByChannelId(channel.id().toString(),message);
         dataMap.remove(key);
         promiseMap.remove(key);
     }
@@ -232,5 +257,22 @@ public class ServerChannelHandler extends SimpleChannelInboundHandler<Object> {
         target.getItems().add(itemTarget);
         // 更新记录数
         ((Service) SpringContextUtil.getBean("BaseService")).updateByArrtribute(TableConstant.TABLE_ROUTERS, source, target);
+    }
+    public static String getSendKeyByChannelId(String channelId,byte[] message){
+        String key = channelId+"-"+message[8]+message[9]+"-"+SpringContextUtil.toHex(message[4])+SpringContextUtil.toHex(message[5])+SpringContextUtil.toHex(message[6])+SpringContextUtil.toHex(message[7]);
+        return key;
+    }
+    public static String getRecieveKeyByChannelId(String channelId,String tagAddress){
+        String key = channelId+"-"+tagAddress;
+        return key;
+    }
+    public static String getContentKeyByChannelId(String channelId,byte[] message){
+        String key = channelId+"-"+message[8]+message[9]+"-"+SpringContextUtil.toHex(message[11])+SpringContextUtil.toHex(message[12])+SpringContextUtil.toHex(message[13])+SpringContextUtil.toHex(message[14]);
+        return key;
+    }
+    public boolean isBroadcastCommand(byte[] message){
+        if(((message[4] == 0  && message[5] ==0 && message[6] == 0  && message[7] ==0)  && message[8]!=4 && message[8]!=7)  ||  (message[8]==0x01  && message[9] == 0x03))
+            return true;
+        return false;
     }
 }

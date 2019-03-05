@@ -44,7 +44,9 @@ public class StyleServiceImpl extends BaseServiceImpl implements StyleService {
             List<Style> styleList = findByArrtribute(TableConstant.TABLE_STYLE, items.getQuery(), items.getQueryString(), Style.class);
             for (Style style : styleList) {
                 List<Tag> tagList = findByArrtribute(TableConstant.TABLE_TAGS, ArrtributeConstant.TAG_STYLEID, String.valueOf(style.getId()), Tag.class);
-                tags.addAll(tagList);
+                for(Tag tag:tagList)
+                    if(tag.getGood()!=null)
+                        tags.add(tag);
             }
         }
         if (mode == 0) {
@@ -61,12 +63,11 @@ public class StyleServiceImpl extends BaseServiceImpl implements StyleService {
             // 设置定期刷新
             CycleJob cyclejob = new CycleJob();
             cyclejob.setCron("0 0/1 * * * ?");
-            cyclejob.setArgs(RequestBeanUtil.getRequestBeanAsString(tags));
-            cyclejob.setMode(Integer.valueOf(ModeConstant.DO_BY_TAG));
-            // 0刷新1巡检
-            cyclejob.setType(ModeConstant.DO_BY_TAG_FLUSH);
+            cyclejob.setArgs(RequestBeanUtil.getRequestBeanAsString(requestBean));
+            cyclejob.setMode(0);
+            cyclejob.setType(ModeConstant.DO_BY_TAG_STYLE_FLUSH);
             cycleJobDao.save(cyclejob);
-            dynamicTask.addFlushTask("0 0/1 * * * ?",requestBean, ModeConstant.DO_BY_TAG);
+            dynamicTask.addTask(requestBean,ModeConstant.DO_BY_TAG_STYLE_FLUSH,0);
             return new ResponseBean(requestBean.getItems().size(), requestBean.getItems().size());
         }
         return responseBean;

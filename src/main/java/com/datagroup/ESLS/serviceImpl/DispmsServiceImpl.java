@@ -32,7 +32,7 @@ public class DispmsServiceImpl extends BaseServiceImpl  implements DispmsService
     }
     @Override
     public Dispms saveOne(Dispms dispms) {
-        Style style = dispms.getStyle();
+//        Style style = dispms.getStyle();
 //        if(dispms.getId()!=0 && style!=null) {
 //            Long styleId = style.getId();
 //            // 通过styleId查找使用了此样式的所有标签实体

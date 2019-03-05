@@ -13,14 +13,12 @@ import com.datagroup.ESLS.entity.Style;
 import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.dto.TagVo;
 import com.datagroup.ESLS.service.GoodService;
+import com.datagroup.ESLS.service.StyleService;
 import com.datagroup.ESLS.service.TagService;
-import com.datagroup.ESLS.utils.ConditionUtil;
-import com.datagroup.ESLS.utils.CopyUtil;
-import com.datagroup.ESLS.utils.ResponseUtil;
+import com.datagroup.ESLS.utils.*;
 import io.swagger.annotations.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.shiro.authz.annotation.RequiresPermissions;
-import org.apache.shiro.authz.annotation.RequiresRoles;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -44,7 +42,8 @@ public class TagController {
     private GoodService goodService;
     @Autowired
     private DynamicTask dynamicTask;
-
+    @Autowired
+    private StyleService styleService;
     @ApiOperation(value = "根据条件获取标签信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = " 查询条件 可为所有字段 分隔符为单个空格", dataType = "String", paramType = "query"),
@@ -239,8 +238,9 @@ public class TagController {
     }
     @ApiOperation("查看所有变价超时的标签信息")
     @GetMapping("/tags/overtime")
+    @RequiresPermissions("查看所有变价超时的标签信息")
     public ResponseEntity<ResultBean> getOverTimeTags(){
-        List<Tag> tagList = tagService.findBySql("SELECT * FROM tags WHERE  execTime IS NULL OR  execTime = 0",Tag.class);
+        List<Tag> tagList = tagService.findBySql("SELECT * FROM tags WHERE  completeTime IS NULL OR  execTime = 0",Tag.class);
         ResponseEntity<ResultBean> result;
         if ((result = ResponseUtil.testListSize("没有相应的标签或商品 请重新选择", tagList)) != null) return result;
         List<TagVo> tagVos = CopyUtil.copyTag(tagList);
@@ -252,6 +252,7 @@ public class TagController {
             @ApiImplicitParam(name = "typeMode", value = " 0对标签 1对路由器", dataType = "int", paramType = "query")
     })
     @PutMapping("/tag/light")
+    @RequiresPermissions("标签闪灯")
     public ResponseEntity<ResultBean> changeLightStatus(@RequestBody @ApiParam("标签或路由器信息集合") RequestBean requestBean,@RequestParam  @Min(message = "data.page.min", value = 0)  @Max(message = "data.mode.max", value = 1) Integer mode,@RequestParam Integer typeMode){
         if(typeMode.equals(0))
             return new  ResponseEntity<>(new ResultBean(tagService.changeLightStatus(requestBean,mode)),HttpStatus.OK);
@@ -265,7 +266,19 @@ public class TagController {
             @ApiImplicitParam(name = "mode", value = " 0对标签 1对路由器", dataType = "int", paramType = "query")
     })
     @PutMapping("/tag/remove")
-    public ResponseEntity<ResultBean> removeTagCommand(@RequestBody @ApiParam("标签或路由器信息集合") RequestBean requestBean,@RequestParam  @Min(message = "data.page.min", value = 0)  @Max(message = "data.mode.max", value = 1) Integer mode){
+    public ResponseEntity<ResultBean> removeTagCommand(@RequestBody @ApiParam("标签集合") RequestBean requestBean,@RequestParam  @Min(message = "data.page.min", value = 0)  @Max(message = "data.mode.max", value = 1) Integer mode){
         return new  ResponseEntity<>(new ResultBean(tagService.removeTagCommand(requestBean,mode)),HttpStatus.OK);
+    }
+    @ApiOperation("获得标签可绑定的所有样式")
+    @PostMapping("/tag/styles")
+    public ResponseEntity<ResultBean>getStyles(@RequestBody @ApiParam("标签集合") RequestBean requestBean){
+        List<Tag> tags = RequestBeanUtil.getTagsByRequestBean(requestBean);
+        List<Style> styles = styleService.findAll();
+        List<Style> resultList = new ArrayList<>();
+        for(Tag tag:tags)
+            for(Style style:styles)
+                if(TagUtil.judgeTagMatchStyle(tag,style))
+                    resultList.add(style);
+        return new  ResponseEntity<>(new ResultBean(CopyUtil.copyStyle(resultList)),HttpStatus.OK);
     }
 }

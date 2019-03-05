@@ -57,9 +57,11 @@ public class NettyClient implements Callable {
         ChannelPromise promise = serverChannelHandler.sendMessage(channel,send);
         promise.await();
         String result = serverChannelHandler.getData(channel, send);
-        System.out.println("startAndWrite 开始："+serverChannelHandler.getMapSize());
-        serverChannelHandler.removeMapWithKey(channel, send);
-        System.out.println("startAndWrite 结束："+serverChannelHandler.getMapSize());
+        if(!serverChannelHandler.isBroadcastCommand(send)) {
+            log.info("线程移除前（命令得到响应）:" + serverChannelHandler.getMapSize());
+            serverChannelHandler.removeMapWithKey(channel, send);
+            log.info("线程移除后（命令得到响应）:" + serverChannelHandler.getMapSize());
+        }
         return result;
     }
 

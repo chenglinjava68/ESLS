@@ -1,19 +1,20 @@
 package com.datagroup.ESLS.utils;
 
+import com.datagroup.ESLS.common.constant.StyleNumberToHeight;
 import com.datagroup.ESLS.common.constant.StyleType;
 import com.datagroup.ESLS.common.constant.TableConstant;
 import com.datagroup.ESLS.common.response.ByteResponse;
-import com.datagroup.ESLS.common.response.ResponseBean;
 import com.datagroup.ESLS.dto.ByteAndRegion;
 import com.datagroup.ESLS.entity.Dispms;
 import com.datagroup.ESLS.entity.Good;
+import com.datagroup.ESLS.entity.SystemVersionArgs;
 import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.graphic.BarCode;
-import com.datagroup.ESLS.graphic.BarcodeUtil;
 import com.datagroup.ESLS.graphic.QRCode;
 import com.datagroup.ESLS.service.DispmsService;
 import com.datagroup.ESLS.service.GoodService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.FileUtils;
 import org.springframework.beans.BeanUtils;
 import sun.font.FontDesignMetrics;
 
@@ -22,18 +23,114 @@ import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
-import java.beans.PropertyDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 @Slf4j
 public class ImageHelper {
+    public static ByteResponse getRequest(List<Dispms> dispms,String styleNumber,Good good) throws IOException {
+        if(dispms.size()==0)
+            return null;
+        List<byte[]> allbyteList = new ArrayList<>();
+        byte[] firstByte = new byte[3+6+dispms.size()*12];
+        int i,j;
+        firstByte[0] = 0x03;
+        firstByte[1] = 0x01;
+        firstByte[2] = (byte) (6+dispms.size()*12);
+        for(j=0;j<styleNumber.length();j++)
+            firstByte[j+3] = (byte) styleNumber.charAt(j);
+        firstByte[7]  = '\0';
+        firstByte[8] = (byte) dispms.size();
+        FileUtils.deleteDirectory(new File("D:\\styles\\"+styleNumber+"("+dispms.get(0).getStyle().getId()+")"));
+        for (i = 0; i < dispms.size(); i++) {
+            try {
+                Dispms region = dispms.get(i);
+                ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
+                region = byteAndRegion.getRegion();
+                byte[] regionImage = byteAndRegion.getRegionBytes();
+                // 区域编号
+                firstByte[(i * 12) + 9] = Byte.parseByte(region.getRegionId());
+                // 颜色
+                firstByte[(i * 12) + 10] = ColorUtil.getColorByte(region.getBackgroundColor(), region.getFontColor());
+                byte[] x, y, height, width;
+                if (ImageHelper.getTypeByStyleNumber(styleNumber).equals(StyleType.StyleType_40)) {
+                    width = int2ByteArr(region.getWidth());
+                    height = int2ByteArr(region.getHeight());
+                    x = int2ByteArr(region.getX());
+                    y = int2ByteArr(region.getY());
+                    // x
+                    firstByte[(i * 12) + 11] = x[1];
+                    firstByte[(i * 12) + 12] = x[0];
+                    // y
+                    firstByte[(i * 12) + 13] = y[1];
+                    firstByte[(i * 12) + 14] = y[0];
+                } else {
+                    width = int2ByteArr(region.getWidth());
+                    height = int2ByteArr(region.getHeight());
+                    x = int2ByteArr(region.getX());
+                    y = int2ByteArr(StyleNumberToHeight.styleNumberToHeight(styleNumber) - region.getY()-region.getHeight());
+                    // x
+                    firstByte[(i * 12) + 11] = y[1];
+                    firstByte[(i * 12) + 12] = y[0];
+                    // y
+                    firstByte[(i * 12) + 13] = x[1];
+                    firstByte[(i * 12) + 14] = x[0];
+                }
+                byte[] length = int2ByteArr(regionImage.length);
+                // 长度
+                firstByte[(i * 12) + 15] = width[1];
+                firstByte[(i * 12) + 16] = width[0];
+                // 宽度
+                firstByte[(i * 12) + 17] = height[1];
+                firstByte[(i * 12) + 18] = height[0];
+                // 显示存储字节数
+                firstByte[(i * 12) + 19] = length[1];
+                firstByte[(i * 12) + 20] = length[0];
+                List<byte[]> byteList = getByteList(regionImage, Integer.valueOf(region.getRegionId()));
+                allbyteList.addAll(byteList);
+            }
+            catch (Exception e){
+                System.out.println("getRequest - " + e);
+            }
+        }
+        byte[] bytes = allbyteList.get(allbyteList.size() - 1);
+        bytes[4] = 0x01;
+        return new ByteResponse(firstByte,allbyteList);
+    }
+    public static ByteResponse getRegionRequest(List<Dispms> dispms,String styleNumber,Good good){
+        if(dispms.size()==0)
+            return null;
+        List<byte[]> allbyteList = new ArrayList<>();
+        for(int i = 0;i<dispms.size();i++){
+            Dispms region = dispms.get(i);
+            ByteAndRegion byteAndRegion = getRegionImage(region, styleNumber,good);
+            region = byteAndRegion.getRegion();
+            byte[] regionImage = byteAndRegion.getRegionBytes();
+            List<byte[]> byteList = getByteList(regionImage,Integer.valueOf(region.getRegionId()));
+            allbyteList.addAll(byteList);
+        }
+        byte[] bytes = allbyteList.get(allbyteList.size() - 1);
+        bytes[4] = 0x01;
+        return new ByteResponse(null,allbyteList);
+    }
+    public static ByteAndRegion getRegionImage(Dispms dispM, String styleNumber,Good good) {
+        try {
+            FileUtil.createFileIfNotExist("D:\\styles\\",styleNumber+"("+dispM.getStyle().getId()+")");
+            String columnType = dispM.getColumnType();
+            if(!ImageHelper.getImageType(columnType))
+                return ImageHelper.getImageByType1(dispM,styleNumber,good);
+            else
+                return ImageHelper.getImageByType2(dispM,styleNumber,good);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return null;
+    }
     public static ByteAndRegion getImageByType1(Dispms dispM,String styleNumber,Good good) throws Exception {
         DispmsService dispmsService = (DispmsService) SpringContextUtil.getBean("DispmsService");
         Dispms returnDispms = new Dispms();
@@ -199,7 +296,7 @@ public class ImageHelper {
                 }
             }
             log.info("区域:"+dispmsesList.size());
-            byteResponse = SpringContextUtil.getRegionRequest(dispmsesList, tag.getStyle().getStyleNumber(), good);
+            byteResponse = getRegionRequest(dispmsesList, tag.getStyle().getStyleNumber(), good);
         }
         else{
             for(int i=0 ;i<dispmses.size();i++) {
@@ -208,9 +305,81 @@ public class ImageHelper {
                     dispmsesList.add(dispmses.get(i));
             }
             log.info("全局:"+dispmsesList.size());
-            byteResponse = SpringContextUtil.getRequest(dispmsesList, tag.getStyle().getStyleNumber(), good);
+            byteResponse = getRequest(dispmsesList, tag.getStyle().getStyleNumber(), good);
         }
         return byteResponse;
+    }
+    // 分包发送
+    public static List<byte[]> getByteList(byte[] regionImage,int number){
+        List<byte[]> byteList =  new ArrayList<>();
+        int i,j;
+        int packageLength = Integer.valueOf(SystemVersionArgs.packageLength);
+        int len = regionImage.length / packageLength;
+        int remainder = regionImage.length % packageLength;
+        if(regionImage.length>packageLength){
+            for(i=0;i<len;i++){
+                byte[] bytes = new byte[8 + packageLength];
+                bytes[0] = 0x03;
+                bytes[1] = 0x02;
+                // 长度
+                bytes[2] = (byte) (5 + packageLength);
+                // 编号
+                bytes[3] = (byte) number;
+                // 是否刷新
+                bytes[4] = 0x00;
+                byte[] loc = int2ByteArr(i * packageLength);
+                // 起始位置
+                bytes[5] = loc[1];
+                bytes[6] = loc[0];
+                // 数据长度
+                bytes[7] = (byte) (packageLength);
+                int begin = 8;
+                // 区域显示数据
+                for (j = i * packageLength; j < (i+1)*packageLength; j++)
+                    bytes[begin++] = regionImage[j];
+                byteList.add(bytes);
+            }
+            byte[] bytes = new byte[8 + remainder];
+            bytes[0] = 0x03;
+            bytes[1] = 0x02;
+            // 长度
+            bytes[2] = (byte) (5 + remainder);
+            // 编号
+            bytes[3] = (byte) number;
+            bytes[4] = 0x00;
+            byte[] loc = int2ByteArr(i * packageLength);
+            // 起始位置
+            bytes[5] = loc[1];
+            bytes[6] = loc[0];
+            // 数据长度
+            bytes[7] = (byte) (remainder);
+            int begin = 8;
+            // 区域显示数据
+            for (j = i * packageLength; j < i * packageLength+remainder; j++)
+                bytes[begin++] = regionImage[j];
+            byteList.add(bytes);
+        }
+        else {
+            byte[] bytes = new byte[8+regionImage.length];
+            bytes[0] = 0x03;
+            bytes[1] = 0x02;
+            // 长度
+            bytes[2] = (byte) (5+regionImage.length);
+            // 编号
+            bytes[3] = (byte) number;
+            // 是否刷新
+            bytes[4] = 0x00;
+            // 起始位置
+            bytes[5] = 0;
+            bytes[6] = 0;
+            // 数据长度
+            bytes[7] = (byte) (regionImage.length);
+            // 区域显示数据
+            for(i=0;i<regionImage.length;i++)
+                bytes[i+8] = regionImage[i];
+            byteList.add(bytes);
+        }
+        return byteList;
     }
     public static Dispms getText(Dispms dispM, Good good) {
         if(dispM.getSourceColumn().equalsIgnoreCase("0")) {
@@ -393,5 +562,11 @@ public class ImageHelper {
                 bufferedImage.setRGB(j, i, Color.WHITE.getRGB());
         }
         return bufferedImage;
+    }
+    public static byte[] int2ByteArr(int i){
+        byte[] bytes = new byte[2] ;
+        bytes[0] = (byte)(i >> 8) ;
+        bytes[1] = (byte)(i >> 0) ;
+        return bytes ;
     }
 }

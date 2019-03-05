@@ -17,4 +17,6 @@ public class ModeConstant {
     public static Integer DO_BY_BASEGOODS_SCAN = 7;
     public static Integer DO_BY_CHANGEGOODS_SCAN = 8;
 
+    public static Integer DO_BY_TAG_STYLE_FLUSH = 9;
+
 }

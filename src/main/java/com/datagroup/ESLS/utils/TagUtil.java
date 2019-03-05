@@ -2,6 +2,7 @@ package com.datagroup.ESLS.utils;
 
 import com.datagroup.ESLS.dto.TagsAndRouter;
 import com.datagroup.ESLS.entity.Router;
+import com.datagroup.ESLS.entity.Style;
 import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.service.RouterService;
 import com.datagroup.ESLS.service.TagService;
@@ -40,6 +41,7 @@ public class TagUtil {
             tagService.saveOne(newTag);
         }
         else {
+            // 变价超时
             tag.setCompleteTime(new Timestamp(System.currentTimeMillis()));
             tag.setCompleteTime(null);
             tagService.saveOne(tag);
@@ -54,6 +56,7 @@ public class TagUtil {
             tagService.saveOne(newTag);
         }
         else {
+            // 变价超时
             tag.setCompleteTime(new Timestamp(System.currentTimeMillis()));
             tag.setCompleteTime(null);
             tagService.saveOne(tag);
@@ -88,5 +91,12 @@ public class TagUtil {
             r.setIsWorking((byte) 0);
             routerService.saveOne(r);
         }
+    }
+    public static boolean judgeTagMatchStyle(Tag tag, Style style){
+        String resolutionWidth = tag.getResolutionWidth();
+        String styleNumber = style.getStyleNumber();
+        if(resolutionWidth.substring(0,2).equals(styleNumber.substring(0,2)))
+            return true;
+        return false;
     }
 }

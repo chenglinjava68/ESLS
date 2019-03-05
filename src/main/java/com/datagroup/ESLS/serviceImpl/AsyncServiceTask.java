@@ -44,7 +44,7 @@ public class AsyncServiceTask {
         return new AsyncResult<>(TagUtil.judgeResultAndSettingRouter(result,begin,router));
     }
     @Async
-    public ListenableFuture<String> updateTagStyle(Tag tag,long begin) throws InterruptedException {
+    public ListenableFuture<String> updateTagStyle(Tag tag,long begin)  {
         log.info("-----向(标签集合)发送更新样式命令线程-----");
         ResponseBean responseBean = tagService.updateTagStyle(tag);
         String result = responseBean.getSuccessNumber()==1?"成功":"失败";

@@ -9,6 +9,7 @@ import com.datagroup.ESLS.dao.CycleJobDao;
 import com.datagroup.ESLS.entity.CycleJob;
 import com.datagroup.ESLS.service.RouterService;
 import com.datagroup.ESLS.service.Service;
+import com.datagroup.ESLS.service.StyleService;
 import com.datagroup.ESLS.service.TagService;
 import com.datagroup.ESLS.utils.FileUtil;
 import com.datagroup.ESLS.utils.PoiUtil;
@@ -38,6 +39,8 @@ public class DynamicTask {
     @Autowired
     private TagService tagService;
     @Autowired
+    private StyleService styleService;
+    @Autowired
     private RouterService routerService;
     @Autowired
     private CycleJobDao cycleJobDao;
@@ -49,6 +52,9 @@ public class DynamicTask {
     }
     public void addFlushTask(String cron, RequestBean requestBean, Integer mode){
         future = threadPoolTaskScheduler.schedule(new FlushTask(requestBean,mode), new CronTrigger(cron));
+    }
+    public void addStyleFlushTask(String cron, RequestBean requestBean){
+        future = threadPoolTaskScheduler.schedule(new StyleFlushTask(requestBean), new CronTrigger(cron));
     }
     public void addTagScanTask(String cron, RequestBean requestBean, Integer mode){
         future = threadPoolTaskScheduler.schedule(new TagScanTask(requestBean,mode), new CronTrigger(cron));
@@ -79,6 +85,16 @@ public class DynamicTask {
                 System.out.println("对路由器下的标签定期刷新:" + new Date());
                 tagService.flushTagsByRouter(requestBean);
             }
+        }
+    }
+    private class StyleFlushTask implements Runnable {
+        private RequestBean requestBean;
+        public StyleFlushTask(RequestBean requestBean){
+            this.requestBean = requestBean;
+        }
+        @Override
+        public void run() {
+            styleService.flushTags(requestBean,0);
         }
     }
     private class TagScanTask implements Runnable {
@@ -209,6 +225,9 @@ public class DynamicTask {
             // 路由器巡检
             else if (type.equals(ModeConstant.DO_BY_ROUTER_SCAN))
                 addRouterScanTask(item.getCron(), requestBeanItem);
+            // 对指定样式定期刷新
+            else if(type.equals(ModeConstant.DO_BY_TAG_STYLE_FLUSH))
+                addStyleFlushTask(item.getCron(), requestBeanItem);
         }
     }
 }

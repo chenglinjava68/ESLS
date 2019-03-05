@@ -2,6 +2,8 @@ package com.datagroup.ESLS.controller;
 
 import com.datagroup.ESLS.aop.Log;
 import com.datagroup.ESLS.common.request.RequestBean;
+import com.datagroup.ESLS.common.response.ResponseBean;
+import com.datagroup.ESLS.dao.TagDao;
 import com.datagroup.ESLS.dto.DispmsVo;
 import com.datagroup.ESLS.dto.StyleVo;
 import com.datagroup.ESLS.common.constant.ArrtributeConstant;
@@ -10,6 +12,8 @@ import com.datagroup.ESLS.common.response.ResultBean;
 import com.datagroup.ESLS.entity.Dispms;
 import com.datagroup.ESLS.entity.Good;
 import com.datagroup.ESLS.entity.Style;
+import com.datagroup.ESLS.entity.Tag;
+import com.datagroup.ESLS.netty.command.CommandConstant;
 import com.datagroup.ESLS.service.DispmsService;
 import com.datagroup.ESLS.service.GoodService;
 import com.datagroup.ESLS.service.StyleService;
@@ -44,7 +48,10 @@ public class StyleController {
     private DispmsService dispmsService;
     @Autowired
     private GoodService goodService;
-
+    @Autowired
+    private TagDao tagDao;
+    @Autowired
+    private NettyUtil nettyUtil;
     @ApiOperation(value = "根据条件获取样式信息")
     @ApiImplicitParams({
             @ApiImplicitParam(name = "query", value = "查询条件 可为所有字段", dataType = "String", paramType = "query"),
@@ -137,22 +144,23 @@ public class StyleController {
         return new ResponseEntity<>(ResultBean.error("删除失败！没有指定ID的样式"), HttpStatus.BAD_REQUEST);
     }
 
-    @ApiOperation(value = "更改指定ID样式的小样式")
-    @PostMapping("/style/update")
-    @Log("更改指定ID样式的小样式")
-    public ResponseEntity<ResultBean> updateStyleById(@RequestParam long styleId, @RequestBody @ApiParam(value = "样式信息Id List格式") List<Long> dispmIds) {
-        List<Style> styleList = dispmsService.findByArrtribute(TableConstant.TABLE_STYLE, ArrtributeConstant.TABLE_ID, String.valueOf(styleId), Style.class);
-        if(styleList==null || styleList.size()==0)
-            return new ResponseEntity<>(ResultBean.error("没有指定的样式,请先添加样式"), HttpStatus.BAD_REQUEST);
-        ResponseEntity<ResultBean> result ;
-        if ((result = ResponseUtil.testListSize("没有对应ID的样式", styleList)) != null) return result;
-        // 返回前端提示信息
-        return new ResponseEntity<>(ResultBean.success(styleService.updateStyleById(styleId,dispmIds,styleList.get(0))), HttpStatus.OK);
-    }
-    @ApiOperation(value = "新建样式同时绑定小样式")
+    //    @ApiOperation(value = "更改指定ID样式的小样式")
+//    @PostMapping("/style/update")
+//    @Log("更改指定ID样式的小样式")
+//    public ResponseEntity<ResultBean> updateStyleById(@RequestParam long styleId, @RequestBody @ApiParam(value = "样式信息Id List格式") List<Long> dispmIds) {
+//        List<Style> styleList = dispmsService.findByArrtribute(TableConstant.TABLE_STYLE, ArrtributeConstant.TABLE_ID, String.valueOf(styleId), Style.class);
+//        if(styleList==null || styleList.size()==0)
+//            return new ResponseEntity<>(ResultBean.error("没有指定的样式,请先添加样式"), HttpStatus.BAD_REQUEST);
+//        ResponseEntity<ResultBean> result ;
+//        if ((result = ResponseUtil.testListSize("没有对应ID的样式", styleList)) != null) return result;
+//        // 返回前端提示信息
+//        return new ResponseEntity<>(ResultBean.success(styleService.updateStyleById(styleId,dispmIds,styleList.get(0))), HttpStatus.OK);
+//    }
+    @ApiOperation(value = "新建或修改样式同时绑定小样式")
     @PostMapping("/style/new")
-    @Log("新建样式同时绑定小样式")
+    @Log("新建或修改样式同时绑定小样式")
     @ApiImplicitParam(name = "mode", value = "0为添加 1为修改", dataType = "int", paramType = "query")
+    @RequiresPermissions("新建或修改样式同时绑定小样式")
     public ResponseEntity<ResultBean> newStyleById(@RequestParam long styleId, @RequestBody @ApiParam(value = "样式信息JSON格式") List<Dispms> dispms,@RequestParam Integer mode) {
         List<Style> styleList = dispmsService.findByArrtribute(TableConstant.TABLE_STYLE, ArrtributeConstant.TABLE_ID, String.valueOf(styleId), Style.class);
         if(styleList==null || styleList.size()==0)
@@ -168,30 +176,51 @@ public class StyleController {
     })
     @PutMapping("/style/flush")
     @Log("刷新选用该样式的标签或设置定期刷新")
+    @RequiresPermissions("刷新选用该样式的标签或设置定期刷新")
     public ResponseEntity<ResultBean> flushTags(@RequestBody @ApiParam("样式集合") RequestBean requestBean,@RequestParam  @Min(message = "data.page.min", value = 0)  @Max(message = "data.mode.max", value = 1) Integer mode){
         return new  ResponseEntity<>(new ResultBean(styleService.flushTags(requestBean,mode)),HttpStatus.OK);
     }
     @ApiOperation("生成指定ID样式的所有小样式图片")
     @GetMapping("/style/photo/{id}")
     @Log("生成指定ID样式的所有小样式图片")
+    @RequiresPermissions("生成指定ID样式的所有小样式图片")
     public ResponseEntity<ResultBean> creatStyle(@PathVariable long id,@RequestParam Long goodId){
         Style style= styleService.findById(id).get();
         Good good = goodService.findById(goodId);
         Collection<Dispms> dispmses = style.getDispmses();
         for(Dispms dispms : dispmses) {
             Dispms temp =ImageHelper.getText(dispms, good);
-            SpringContextUtil.getRegionImage(temp, style.getStyleNumber(),good);
+            ImageHelper.getRegionImage(temp, style.getStyleNumber(),good);
         }
         return new  ResponseEntity<>(ResultBean.success("成功"),HttpStatus.OK);
     }
     @ApiOperation("生成指定ID样式的所有小样式图片")
     @GetMapping("/style/dism/photo/{id}")
     @Log("生成指定ID样式的所有小样式图片")
+    @RequiresPermissions("生成指定ID样式的所有小样式图片")
     public ResponseEntity<ResultBean> creatDism(@PathVariable long id,@RequestParam Long goodId,@RequestParam String styleNumber){
         Dispms dispms= dispmsService.findById(id).get();
         Good good = goodService.findById(goodId);
         Dispms temp =ImageHelper.getText(dispms, good);
-        SpringContextUtil.getRegionImage(temp, styleNumber,good);
+        ImageHelper.getRegionImage(temp, styleNumber,good);
         return new  ResponseEntity<>(ResultBean.success("成功"),HttpStatus.OK);
+    }
+
+    @ApiOperation("向选用此样式的所有标签发送样式")
+    @GetMapping("/style/sendDism/{id}")
+    @Log("向选用此样式的标签发送样式")
+    @RequiresPermissions("向选用此样式的所有标签发送样式")
+    public ResponseEntity<ResultBean> sendDism(@PathVariable long id){
+        ResponseBean responseBean;
+        List<Tag> tags = tagDao.findByStyleId(id);
+        if(tags.size()>1)
+        {
+            nettyUtil.awakeFirst(tags);
+            responseBean = SendCommandUtil.updateTagStyle(tags);
+            nettyUtil.awakeOverLast(tags);
+        }
+        else
+            responseBean = SendCommandUtil.updateTagStyle(tags);
+        return new  ResponseEntity<>(ResultBean.success(responseBean),HttpStatus.OK);
     }
 }

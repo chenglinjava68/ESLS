@@ -47,8 +47,6 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
     private NettyUtil nettyUtil;
     @Autowired
     private CycleJobService cycleJobService;
-    @Autowired
-    private TagService tagService;
     @Override
     public List<Good> findAll() {
         return goodDao.findAll();
@@ -166,32 +164,16 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
         }
         return false;
     }
-
-    @Override
-    public Good findById(Long id) {
-        return goodDao.getOne(id);
-    }
-
-    @Override
-    public boolean deleteById(Long id) {
-        try{
-            goodDao.deleteById(id);
-            return true;
-        }
-        catch (Exception e){
-            return false;
-        }
-    }
     // 商品修改
     @Override
     public ResponseBean updateGoods(RequestBean requestBean) {
-        int sum = 0;
-        int successNumber = 0;
+        ResponseBean responseBean = null;
         // 商品修改标志
         List<Tag> tags = new ArrayList<>();
+        List<Good> goods = null;
         try {
             for (RequestItem item : requestBean.getItems()) {
-                List<Good> goods = findBySql(SqlConstant.getQuerySql(TableConstant.TABLE_GOODS, item.getQuery(), "=", item.getQueryString()), Good.class);
+                goods = findBySql(SqlConstant.getQuerySql(TableConstant.TABLE_GOODS, item.getQuery(), "=", item.getQueryString()), Good.class);
                 for( Good good  :  goods){
                     if(good.getWaitUpdate()!=null && good.getWaitUpdate()==0) {
                         List<Tag> tagList = tagDao.findByGoodId(good.getId());
@@ -199,7 +181,6 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
                     }
                 }
             }
-            ResponseBean responseBean ;
             if(tags.size()>1)
             {
                 nettyUtil.awakeFirst(tags);
@@ -208,10 +189,14 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
             }
             else
                 responseBean = SendCommandUtil.updateTagStyle(tags);
-            sum +=responseBean.getSum();
-            successNumber +=responseBean.getSuccessNumber();
+            for(Good good:goods){
+                // 商品改价置1更新完毕
+                good.setWaitUpdate(1);
+                good.setRegionNames(null);
+                goodDao.save(good);
+            }
         } catch (Exception e) { }
-        return new ResponseBean(sum, successNumber);
+        return responseBean;
     }
     // 商品改价
     @Override
@@ -269,5 +254,20 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
                 || value.equals("status"))
             return true;
         return false;
+    }
+    @Override
+    public Good findById(Long id) {
+        return goodDao.getOne(id);
+    }
+
+    @Override
+    public boolean deleteById(Long id) {
+        try{
+            goodDao.deleteById(id);
+            return true;
+        }
+        catch (Exception e){
+            return false;
+        }
     }
 }
