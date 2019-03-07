@@ -139,29 +139,33 @@ public class CommonController {
     })
     @ApiOperation("设置通讯命令时间参数")
     @PutMapping("/common/command/time")
-        @RequiresPermissions("设置通讯命令时间参数")
+    @RequiresPermissions("设置通讯命令时间参数")
     public ResponseEntity<ResultBean> setCommandTime(@ApiParam("时间") @RequestParam @Min(message = "data.time.min",value = 0) Integer time,@RequestParam Integer mode){
         SystemVersion systemVersion = systemVersionDao.findById((long) 1).get();
         SystemVersion result = null;
-        if(mode == 0) {
-            systemVersion.setCommandWaitingTime(String.valueOf(time));
-            systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
-            result = systemVersionDao.save(systemVersion);
-        }
-        else if(mode == 1){
-            systemVersion.setTokenAliveTime(String.valueOf(time));
-            systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
-            result = systemVersionDao.save(systemVersion);
-        }
-        else if(mode == 2){
-            systemVersion.setCommandRepeatTime(String.valueOf(time));
-            systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
-            result = systemVersionDao.save(systemVersion);
-        }
-        else if(mode == 3){
-            systemVersion.setPackageLength(String.valueOf(time));
-            systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
-            result = systemVersionDao.save(systemVersion);
+        switch (mode) {
+            case 0:
+                systemVersion.setCommandWaitingTime(String.valueOf(time));
+                systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+                result = systemVersionDao.save(systemVersion);
+                break;
+            case 1 :
+                systemVersion.setTokenAliveTime(String.valueOf(time));
+                systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+                result = systemVersionDao.save(systemVersion);
+                break;
+            case 2 :
+                systemVersion.setCommandRepeatTime(String.valueOf(time));
+                systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+                result = systemVersionDao.save(systemVersion);
+                break;
+            case 3 :
+                systemVersion.setPackageLength(String.valueOf(time));
+                systemVersion.setDate(new Timestamp(System.currentTimeMillis()));
+                result = systemVersionDao.save(systemVersion);
+                break;
+            default:
+                break;
         }
         systemVersionArgs.init();
         return new ResponseEntity<>(ResultBean.success(result),HttpStatus.OK);

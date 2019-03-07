@@ -34,7 +34,7 @@ public class Handler918 implements ServiceHandler{
         r.setHardVersion(routerHardVersion);
         r.setSoftVersion(routerSoftVersion);
         routerService.saveOne(r);
-        r.setHeartBeat(new Timestamp(System.currentTimeMillis()));
+        r.setCompleteTime(new Timestamp(System.currentTimeMillis()));
         routerService.saveOne(r);
         return CommandCategory.getResponse(CommandConstant.ACK,header,CommandConstant.COMMANDTYPE_ROUTER,null);
     }

@@ -18,7 +18,7 @@ import java.io.Serializable;
  **/
 public class ShiroSessionManager extends DefaultWebSessionManager {
 
-    private static final String AUTHORIZATION = "ESLS";
+    private static final String AUTHORIZATION = "esls";
 
     private static final String REFERENCED_SESSION_ID_SOURCE = "Stateless request";
 

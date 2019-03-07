@@ -27,6 +27,7 @@ public class CommandConstant {
     // 0对标签 1对路由器
     public static Integer COMMANDTYPE_TAG = 0;
     public static Integer COMMANDTYPE_ROUTER = 1;
+    public static Integer COMMANDTYPE_TAG_BROADCAST = 2;
 
     public static Map<String,byte[]> COMMAND_BYTE = null;
     public static String TAGBIND = "标签绑定";
@@ -76,15 +77,15 @@ public class CommandConstant {
         }
         else if(type == COMMANDTYPE_ROUTER){
             // 临时修改
-            bytes[0] = 0x22;
-            bytes[1] = 0x22;
+            bytes[0] = 0x11;
+            bytes[1] = 0x11;
         }
         bytes[2] = 0;
         bytes[3]= 7;
-        bytes[4] = (byte) 0;
-        bytes[5] = (byte) 0;
-        bytes[6] = (byte) 0;
-        bytes[7] = (byte) 0;
+        bytes[4] = (byte) 0xff;
+        bytes[5] = (byte) 0xff;
+        bytes[6] = (byte) 0xff;
+        bytes[7] = (byte) 0xff;
         bytes[8] = (byte)_0;
         bytes[9] = (byte)_1;
         bytes[10] = 0;
@@ -117,6 +118,23 @@ public class CommandConstant {
 
         }
         else if(type == COMMANDTYPE_ROUTER){
+            // 通讯对象
+            bytes[0] = 0x11;
+            bytes[1] = 0x11;
+            // 长度
+            int length = 4 + message.length;
+            bytes[2] = (byte)(length >> 8) ;
+            bytes[3] = (byte)(length >> 0) ;
+            // 地址
+            bytes[4] = (byte)0xff;
+            bytes[5] = (byte)0xff;
+            bytes[6] = (byte)0xff;
+            bytes[7] = (byte)0xff;
+            //数据段
+            for(int i = 0;i<message.length;i++)
+                bytes[i+8] = message[i];
+        }
+        else if(type == COMMANDTYPE_TAG_BROADCAST){
             // 通讯对象
             bytes[0] = 0x22;
             bytes[1] = 0x22;

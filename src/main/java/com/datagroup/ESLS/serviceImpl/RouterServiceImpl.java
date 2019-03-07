@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -50,6 +51,7 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
         return content;
     }
     @Override
+    @Transactional
     public Router saveOne(Router router) {
         return routerDao.save(router);
     }
@@ -111,12 +113,22 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
     @Override
     public ResponseBean routerScan(RequestBean requestBean) {
         String contentType = CommandConstant.QUERYROUTER;
-        List<Router> routerList = new ArrayList<>();
-        for (RequestItem items : requestBean.getItems()) {
-            routerList.addAll(findByArrtribute(TableConstant.TABLE_ROUTERS, items.getQuery(), items.getQueryString(), Router.class));
-        }
+        List<Router> routerList = RequestBeanUtil.getRoutersByRequestBean(requestBean);
         TagUtil.setRouterIsNotWorking(routerList);
         ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(routerList, contentType,CommandConstant.COMMANDTYPE_ROUTER);
+        return responseBean;
+    }
+
+    @Override
+    public ResponseBean routersScan() {
+        String contentType = CommandConstant.QUERYROUTER;
+        List<Router> routers = findAll();
+        List<Router> workingRouter = new ArrayList<>();
+        for(Router r:routers)
+            if(r.getState()==1)
+                workingRouter.add(r);
+        TagUtil.setRouterIsNotWorking(workingRouter);
+        ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(workingRouter, contentType,CommandConstant.COMMANDTYPE_ROUTER);
         return responseBean;
     }
 
@@ -145,7 +157,7 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
     }
     public Router updateRouter(Router router) {
         Router r = findById(router.getId()).get();
-        router.setHeartBeat(new Timestamp(System.currentTimeMillis()));
+        router.setCompleteTime(new Timestamp(System.currentTimeMillis()));
         // 更新路由器 发送设置命令
         if(router.getId()!=0 ){
             //getBytesByType
@@ -173,7 +185,7 @@ public class RouterServiceImpl extends BaseServiceImpl implements RouterService 
             for(int i = 0 ;i<frequency.length;i++)
                 message[14+i] = frequency[i];
             byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
-            Channel channel = SpringContextUtil.getChannelByRouter(r);
+            Channel channel = SocketChannelHelper.getChannelByRouter(r);
             String result = nettyUtil.sendMessageWithRepeat(channel, realMessage,Integer.valueOf(SystemVersionArgs.commandRepeatTime),Integer.valueOf(SystemVersionArgs.commandWaitingTime));
             if(result!=null && result.equals("成功")){
                 System.out.println("路由器设置成功");

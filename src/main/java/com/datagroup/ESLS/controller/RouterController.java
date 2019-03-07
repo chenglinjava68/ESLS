@@ -157,6 +157,13 @@ public class RouterController {
             responseBean = routerService.routerScanByCycle(requestBean);
         return new ResponseEntity<>(ResultBean.success(responseBean),HttpStatus.OK);
     }
+    @ApiOperation("对所有路由器发起巡检")
+    @PutMapping("/routers/scan")
+    @RequiresPermissions("对所有路由器发起巡检")
+    public ResponseEntity<ResultBean> routersScan() {
+        ResponseBean responseBean = routerService.routersScan();
+        return new ResponseEntity<>(ResultBean.success(responseBean),HttpStatus.OK);
+    }
     // 路由器设置
     @ApiOperation("发送路由器设置命令")
     @PutMapping("/router/setting")

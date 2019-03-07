@@ -1,10 +1,12 @@
 package com.datagroup.ESLS.netty.handler;
 
+        import com.datagroup.ESLS.entity.Router;
         import com.datagroup.ESLS.entity.Tag;
         import com.datagroup.ESLS.netty.command.CommandCategory;
         import com.datagroup.ESLS.netty.command.CommandConstant;
         import com.datagroup.ESLS.service.TagService;
         import com.datagroup.ESLS.utils.ByteUtil;
+        import com.datagroup.ESLS.utils.SocketChannelHelper;
         import com.datagroup.ESLS.utils.SpringContextUtil;
         import io.netty.channel.Channel;
         import lombok.extern.slf4j.Slf4j;
@@ -30,6 +32,8 @@ public class Handler51 implements ServiceHandler{
         System.out.println("tagrssi："+tag_rssi);
         System.out.println("aprssi："+ap_rssi);
         System.out.println("state："+state[0]);
+        Router router = SocketChannelHelper.getRouterByChannel(channel);
+        System.out.println("选择的路由器:"+router);
         TagService tagService = ((TagService)SpringContextUtil.getBean("TagService"));
         Tag tag  = tagService.findByBarCode(barCode);
         tag = tag==null?new Tag():tag;
@@ -44,6 +48,7 @@ public class Handler51 implements ServiceHandler{
             }
             tag.setForbidState(1);
             tag.setIsWorking((byte) 1);
+            tag.setRouter(router);
             Tag save = tagService.saveOne(tag);
             if(save==null)
                 return CommandCategory.getResponse(CommandConstant.NACK,header,CommandConstant.COMMANDTYPE_ROUTER,null);

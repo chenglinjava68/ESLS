@@ -40,8 +40,8 @@ public class AsyncServiceTask {
     @Async
     public ListenableFuture<String> sendMessageWithRepeat(Channel channel, byte[] message, Router router, long begin,int time) {
         log.info("-----向(路由器集合)发送命令线程-----");
-        String result = nettyUtil.sendMessageWithRepeat(channel, message,time,Integer.valueOf(SystemVersionArgs.commandWaitingTime));
-        return new AsyncResult<>(TagUtil.judgeResultAndSettingRouter(result,begin,router));
+        String result = nettyUtil.sendMessageWithRepeat(channel, message,time,2000);
+        return new AsyncResult<>(TagUtil.judgeResultAndSettingRouter(result,begin,router,message));
     }
     @Async
     public ListenableFuture<String> updateTagStyle(Tag tag,long begin)  {

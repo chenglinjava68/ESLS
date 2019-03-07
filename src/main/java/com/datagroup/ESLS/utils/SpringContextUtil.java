@@ -187,21 +187,6 @@ public class SpringContextUtil implements ApplicationContextAware {
             sb.append(b);
         return sb.toString();
     }
-    public static synchronized Channel getChannelByRouter(Router router){
-        Channel channel = getChannelIdGroup().get(router.getBarCode());
-        return channel;
-    }
-    public static synchronized Channel getChannelByRouter(Long routerId){
-        RouterService routerService = (RouterService) getBean("RouterService");
-        Router router= routerService.findById(routerId).get();
-        Channel channel = getChannelIdGroup().get(router.getBarCode());
-        return channel;
-    }
-    public static synchronized Router getRouterByChannel(Channel channel){
-        InetSocketAddress socketAddress = (InetSocketAddress) channel.remoteAddress();
-        Router router = ((RouterService)getBean("RouterService")).findByIp(socketAddress.getAddress().getHostAddress());
-        return router;
-    }
     public static void printBytes(String comment,byte []message){
         System.out.print(comment+" ");
         for(byte b : message)
@@ -245,26 +230,7 @@ public class SpringContextUtil implements ApplicationContextAware {
         }
         return 0;
     }
-    public static Map<String, Channel> channelIdGroup = new HashMap();
     public static ServerChannelHandler serverChannelHandler;
-    private static ArrayList<String> workingChannel = new ArrayList<>();
-    public static ArrayList<String> getWorkingChannel() {
-        return workingChannel;
-    }
-    public static synchronized void addWorkingChannel(String channelId){
-        workingChannel.add(channelId);
-    }
-    public static synchronized void removeWorkingChannel(String channelId){
-        workingChannel.remove(channelId);
-    }
-    public static synchronized boolean isWorking(String channelId){
-        return workingChannel.contains(channelId);
-    }
-
-
-    public static Map<String, Channel> getChannelIdGroup() {
-        return channelIdGroup;
-    }
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {

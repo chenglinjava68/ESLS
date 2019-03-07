@@ -172,13 +172,11 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
         List<Tag> tags = new ArrayList<>();
         List<Good> goods = null;
         try {
-            for (RequestItem item : requestBean.getItems()) {
-                goods = findBySql(SqlConstant.getQuerySql(TableConstant.TABLE_GOODS, item.getQuery(), "=", item.getQueryString()), Good.class);
-                for( Good good  :  goods){
-                    if(good.getWaitUpdate()!=null && good.getWaitUpdate()==0) {
-                        List<Tag> tagList = tagDao.findByGoodId(good.getId());
-                        tags.addAll(tagList);
-                    }
+            goods = RequestBeanUtil.getGoodsByRequestBean(requestBean);
+            for( Good good  :  goods){
+                if(good.getWaitUpdate()!=null && good.getWaitUpdate()==0) {
+                    List<Tag> tagList = tagDao.findByGoodId(good.getId());
+                    tags.addAll(tagList);
                 }
             }
             if(tags.size()>1)
@@ -189,13 +187,13 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
             }
             else
                 responseBean = SendCommandUtil.updateTagStyle(tags);
-            for(Good good:goods){
-                // 商品改价置1更新完毕
-                good.setWaitUpdate(1);
-                good.setRegionNames(null);
-                goodDao.save(good);
-            }
         } catch (Exception e) { }
+        for(Good good:goods){
+            // 商品改价置1更新完毕
+            good.setWaitUpdate(1);
+            good.setRegionNames(null);
+            goodDao.save(good);
+        }
         return responseBean;
     }
     // 商品改价
@@ -218,15 +216,15 @@ public class GoodServiceImpl extends BaseServiceImpl implements GoodService {
             }
             else
                 responseBean = SendCommandUtil.updateTagStyle(tags);
-            for(Good good:goods){
-                // 商品改价置1更新完毕
-                good.setWaitUpdate(1);
-                good.setRegionNames(null);
-                goodDao.save(good);
-            }
         }
         catch (Exception e) {
             e.printStackTrace();
+        }
+        for(Good good:goods){
+            // 商品改价置1更新完毕
+            good.setWaitUpdate(1);
+            good.setRegionNames(null);
+            goodDao.save(good);
         }
         return responseBean;
     }

@@ -1,6 +1,7 @@
 package com.datagroup.ESLS.netty.client;
 
 import com.datagroup.ESLS.netty.server.ServerChannelHandler;
+import com.datagroup.ESLS.utils.SocketChannelHelper;
 import com.datagroup.ESLS.utils.SpringContextUtil;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
@@ -56,11 +57,11 @@ public class NettyClient implements Callable {
         ServerChannelHandler serverChannelHandler = SpringContextUtil.serverChannelHandler;
         ChannelPromise promise = serverChannelHandler.sendMessage(channel,send);
         promise.await();
-        String result = serverChannelHandler.getData(channel, send);
-        if(!serverChannelHandler.isBroadcastCommand(send)) {
-            log.info("线程移除前（命令得到响应）:" + serverChannelHandler.getMapSize());
-            serverChannelHandler.removeMapWithKey(channel, send);
-            log.info("线程移除后（命令得到响应）:" + serverChannelHandler.getMapSize());
+        String result = SocketChannelHelper.getData(channel, send);
+        if(!SocketChannelHelper.isBroadcastCommand(send)) {
+            log.info(result+"--线程移除前:" + SocketChannelHelper.getMapSize());
+            SocketChannelHelper.removeMapWithKey(channel, send);
+            log.info(result+"--线程移除后:" + SocketChannelHelper.getMapSize());
         }
         return result;
     }

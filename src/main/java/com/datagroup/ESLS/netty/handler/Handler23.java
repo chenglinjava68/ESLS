@@ -5,20 +5,17 @@ import com.datagroup.ESLS.netty.command.CommandCategory;
 import com.datagroup.ESLS.netty.command.CommandConstant;
 import com.datagroup.ESLS.service.RouterService;
 import com.datagroup.ESLS.utils.ByteUtil;
+import com.datagroup.ESLS.utils.SocketChannelHelper;
 import com.datagroup.ESLS.utils.SpringContextUtil;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.net.InetSocketAddress;
 import java.sql.Timestamp;
 
 @Component("handler23")
 @Slf4j
 public class Handler23 implements ServiceHandler {
-
-
     @Override
     public byte[] executeRequest(byte[] header, byte[] message, Channel channel) {
         log.info("路由器注册（更新）-----处理器执行！");
@@ -31,7 +28,7 @@ public class Handler23 implements ServiceHandler {
             String routerFrequency = ByteUtil.getRealMessage(ByteUtil.splitByte(message, 23, 2));
             String routerHardVersion = ByteUtil.getVersionMessage(ByteUtil.splitByte(message, 25, 6));
             String routerSoftVersion = ByteUtil.getVersionMessage(ByteUtil.splitByte(message, 31, 6));
-            SpringContextUtil.getChannelIdGroup().put(routerBarCode, channel);
+            SocketChannelHelper.channelIdGroup.put(routerBarCode, channel);
             System.out.println("mac:"+routerMac);
             System.out.println("routerIP:"+routerIP);
             System.out.println("routerBarCode:"+routerBarCode);
@@ -50,9 +47,9 @@ public class Handler23 implements ServiceHandler {
             r.setSoftVersion(routerSoftVersion);
             r.setHardVersion(routerHardVersion);
             r.setFrequency(routerFrequency);
-            r.setHeartBeat(new Timestamp(System.currentTimeMillis()));
             r.setIsWorking((byte) 1);
             r.setState((byte) 1);
+            r.setCompleteTime(new Timestamp(System.currentTimeMillis()));
             routerService.saveOne(r);
         }
         catch (Exception e){

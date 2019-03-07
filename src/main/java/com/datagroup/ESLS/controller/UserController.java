@@ -167,10 +167,10 @@ public class UserController {
             usrs.add(admin);
             List<UserVo> userVos = CopyUtil.copyUser(usrs);
             System.out.println(userVos);
-            return new ResponseEntity<>(ResultBean.success(userVos),responseHeaders, HttpStatus.OK);
+            return new ResponseEntity<>(ResultBean.success(userVos.get(0)),responseHeaders, HttpStatus.OK);
         } else {
             //登陆失败
-            return new ResponseEntity<>(ResultBean.error("用户名或密码错误"), HttpStatus.NOT_ACCEPTABLE);
+            return new ResponseEntity<>(ResultBean.error("用户名或密码错误"), HttpStatus.BAD_REQUEST);
         }
     }
     @ApiOperation(value = "用户注册")

@@ -23,7 +23,7 @@ public class SendCommandUtil {
             for (Router router : routers) {
                 // 路由器未连接或禁用
                 if( router.getState()!=null && router.getState()==0) continue;
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
+                Channel channel = SocketChannelHelper.getChannelByRouter(router);
                 if(channel == null) continue;
                 // 广播命令只发一次 广播命令没有响应
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, message,router,System.currentTimeMillis(),1);
@@ -40,11 +40,13 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try {
             for (Tag tag : tags) {
+                if(tag.getForbidState()==0)  continue;
+                Channel channel = SocketChannelHelper.getChannelByRouter(tag.getRouter().getId());
+                if(channel == null) continue;
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 byte[] content = CommandConstant.COMMAND_BYTE.get(contentType);
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] message = CommandConstant.getBytesByType(address, content, messageType);
-                Channel channel = SpringContextUtil.getChannelByRouter(tag.getRouter().getId());
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, message, tag, System.currentTimeMillis());
                 listenableFutures.add(result);
             }
@@ -61,6 +63,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try{
             for (Router router : routers) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(router);
+                if(channel == null) continue;
                 if(router.getIsWorking()==0 || (router.getState()!=null && router.getState()==0)) continue;
                 // 更新路由器 发送设置命令
                 byte[] message = new byte[16];
@@ -83,7 +87,6 @@ public class SendCommandUtil {
                     message[14+i] = frequency[i];
                 SpringContextUtil.printBytes("路由器设置信息：",message);
                 byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
                 listenableFutures.add(result);
             }
@@ -114,7 +117,9 @@ public class SendCommandUtil {
     public static ResponseBean sendAwakeMessage(List<byte[]> byteList,Router router,Integer messageType){
         int sum= byteList.size(), successNumber;
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
-        Channel channel = SpringContextUtil.getChannelByRouter(router);
+        Channel channel = SocketChannelHelper.getChannelByRouter(router);
+        if(channel == null)
+            return new ResponseBean(sum, 0);
         try {
             for (byte[] content : byteList) {
                 byte[] message = CommandConstant.getBytesByType(null, content, messageType);
@@ -164,6 +169,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try{
             for (Router router : routers) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(router);
+                if(channel == null) continue;
                 if(router.getIsWorking()==0 || (router.getState()!=null && router.getState()==0)) continue;
                 // 更新路由器 发送设置命令
                 byte[] message = new byte[22];
@@ -181,7 +188,6 @@ public class SendCommandUtil {
                     message[16+i] = versionMessage[i];
                 SpringContextUtil.printBytes("AP写入信息：",message);
                 byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
                 listenableFutures.add(result);
             }
@@ -200,6 +206,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try{
             for (Router router : routers) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(router);
+                if(channel == null) continue;
                 if(router.getIsWorking()==0 || (router.getState()!=null && router.getState()==0)) continue;
                 // 更新路由器 发送设置命令
                 byte[] message = new byte[3];
@@ -208,7 +216,6 @@ public class SendCommandUtil {
                 message[2]=0;
                 SpringContextUtil.printBytes("AP读取信息：",message);
                 byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
                 listenableFutures.add(result);
             }
@@ -226,6 +233,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try{
             for (Router router : routers) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(router);
+                if(channel == null) continue;
                 if(router.getIsWorking()==0 || (router.getState()!=null && router.getState()==0)) continue;
                 // 更新路由器 发送设置命令
                 byte[] message = new byte[4];
@@ -235,7 +244,6 @@ public class SendCommandUtil {
                 message[3]=Byte.parseByte(channelId);
                 SpringContextUtil.printBytes("AP发送无线帧：",message);
                 byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
                 listenableFutures.add(result);
             }
@@ -253,6 +261,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try{
             for (Router router : routers) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(router);
+                if(channel == null) continue;
                 if(router.getIsWorking()==0 || (router.getState()!=null && router.getState()==0)) continue;
                 // 更新路由器 发送设置命令
                 byte[] message = new byte[3];
@@ -261,7 +271,6 @@ public class SendCommandUtil {
                 message[2]=0;
                 SpringContextUtil.printBytes("AP发送停止无线帧：",message);
                 byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
                 listenableFutures.add(result);
             }
@@ -279,6 +288,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try{
             for (Router router : routers) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(router);
+                if(channel == null) continue;
                 if(router.getIsWorking()==0 || (router.getState()!=null && router.getState()==0)) continue;
                 // 更新路由器 发送设置命令
                 byte[] message = new byte[4];
@@ -288,7 +299,6 @@ public class SendCommandUtil {
                 message[3]=Byte.parseByte(channelId);
                 SpringContextUtil.printBytes("AP发送接收无线帧：",message);
                 byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
                 listenableFutures.add(result);
             }
@@ -306,6 +316,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try{
             for (Router router : routers) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(router);
+                if(channel == null) continue;
                 if(router.getIsWorking()==0 || (router.getState()!=null && router.getState()==0)) continue;
                 // 更新路由器 发送设置命令
                 byte[] message = new byte[3];
@@ -314,7 +326,6 @@ public class SendCommandUtil {
                 message[2]=0;
                 SpringContextUtil.printBytes("AP发送停止接收无线帧：",message);
                 byte[] realMessage = CommandConstant.getBytesByType(null, message, CommandConstant.COMMANDTYPE_ROUTER);
-                Channel channel = SpringContextUtil.getChannelByRouter(router);
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage,router,System.currentTimeMillis(), Integer.valueOf(SystemVersionArgs.commandRepeatTime));
                 listenableFutures.add(result);
             }
@@ -333,6 +344,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try {
             for (Tag tag : tags) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(tag.getRouter().getId());
+                if(channel == null) continue;
                 byte[] message = new byte[3];
                 message[0] = 0x08;
                 message[1] = 0x01;
@@ -340,7 +353,6 @@ public class SendCommandUtil {
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] realMessage = CommandConstant.getBytesByType(address, message, CommandConstant.COMMANDTYPE_TAG);
-                Channel channel = SpringContextUtil.getChannelByRouter(tag.getRouter().getId());
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage, tag, System.currentTimeMillis());
                 listenableFutures.add(result);
             }
@@ -358,6 +370,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try {
             for (Tag tag : tags) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(tag.getRouter().getId());
+                if(channel == null) continue;
                 byte[] message = new byte[3];
                 message[0] = 0x08;
                 message[1] = 0x02;
@@ -365,7 +379,6 @@ public class SendCommandUtil {
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] realMessage = CommandConstant.getBytesByType(address, message, CommandConstant.COMMANDTYPE_TAG);
-                Channel channel = SpringContextUtil.getChannelByRouter(tag.getRouter().getId());
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage, tag, System.currentTimeMillis());
                 listenableFutures.add(result);
             }
@@ -383,6 +396,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try {
             for (Tag tag : tags) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(tag.getRouter().getId());
+                if(channel == null) continue;
                 byte[] message = new byte[3];
                 message[0] = 0x08;
                 message[1] = 0x03;
@@ -390,7 +405,6 @@ public class SendCommandUtil {
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] realMessage = CommandConstant.getBytesByType(address, message, CommandConstant.COMMANDTYPE_TAG);
-                Channel channel = SpringContextUtil.getChannelByRouter(tag.getRouter().getId());
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage, tag, System.currentTimeMillis());
                 listenableFutures.add(result);
             }
@@ -408,6 +422,8 @@ public class SendCommandUtil {
         ArrayList<ListenableFuture<String>> listenableFutures = new ArrayList<>();
         try {
             for (Tag tag : tags) {
+                Channel channel = SocketChannelHelper.getChannelByRouter(tag.getRouter().getId());
+                if(channel == null) continue;
                 byte[] message = new byte[3];
                 message[0] = 0x08;
                 message[1] = 0x04;
@@ -415,7 +431,6 @@ public class SendCommandUtil {
                 byte[] address = SpringContextUtil.getAddressByBarCode(tag.getBarCode());
                 if(address == null || (tag.getForbidState()!=null && tag.getForbidState()==0 )) continue;
                 byte[] realMessage = CommandConstant.getBytesByType(address, message, CommandConstant.COMMANDTYPE_TAG);
-                Channel channel = SpringContextUtil.getChannelByRouter(tag.getRouter().getId());
                 ListenableFuture<String> result = ((AsyncServiceTask) SpringContextUtil.getBean("AsyncServiceTask")).sendMessageWithRepeat(channel, realMessage, tag, System.currentTimeMillis());
                 listenableFutures.add(result);
             }

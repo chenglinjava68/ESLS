@@ -43,7 +43,7 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
         long begin = System.currentTimeMillis();
         try {
             if(tag==null)  return new ResponseBean(0, successNumber);
-            Channel channel = SpringContextUtil.getChannelByRouter(tag.getRouter().getId());
+            Channel channel = SocketChannelHelper.getChannelByRouter(tag.getRouter().getId());
             if(channel==null)
                 throw new TagServiceException(ResultEnum.COMMUNITICATION_ERROR);
             Good good = tag.getGood();
@@ -105,7 +105,7 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
     public ResponseBean flushTagsByRouter(RequestBean requestBean) {
         String contentType = CommandConstant.FLUSH;
         List<Router> routers = RequestBeanUtil.getRoutersByRequestBean(requestBean);
-        ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(routers, contentType,CommandConstant.COMMANDTYPE_ROUTER);
+        ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(routers, contentType,CommandConstant.COMMANDTYPE_TAG_BROADCAST);
         return responseBean;
     }
     // 定期刷新
@@ -145,7 +145,7 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
         List<Router> routers = RequestBeanUtil.getRoutersByRequestBean(requestBean);
         List<Tag> tags = TagUtil.getTagsByRouters(routers);
         TagUtil.setTagIsNotWorking(tags);
-        ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(routers, contentType,CommandConstant.COMMANDTYPE_ROUTER);
+        ResponseBean responseBean = SendCommandUtil.sendCommandWithRouters(routers, contentType,CommandConstant.COMMANDTYPE_TAG_BROADCAST);
         return responseBean;
     }
     // 定期巡检
@@ -203,7 +203,7 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
                 contentType = CommandConstant.TAGBLING;
             }
             List<Router> routers = RequestBeanUtil.getRoutersByRequestBean(requestBean);
-            responseBean = SendCommandUtil.sendCommandWithRouters(routers, contentType, CommandConstant.COMMANDTYPE_ROUTER);
+            responseBean = SendCommandUtil.sendCommandWithRouters(routers, contentType, CommandConstant.COMMANDTYPE_TAG_BROADCAST);
         }
         catch (Exception e) {
             System.out.println(e);
@@ -322,13 +322,23 @@ public class TagServiceImpl extends BaseServiceImpl implements TagService {
         List<Tag> tags = RequestBeanUtil.getTagsByRequestBean(requestBean);
         sum = tags.size();
         if(mode == 0){
-            removeTagCommand(requestBean,mode);
+            ResponseBean responseBean = removeTagCommand(requestBean, mode);
+            if(responseBean.getSuccessNumber()>0) {
+                for (Tag itemTag : tags) {
+                    itemTag.setForbidState(mode);
+                    tag = saveOne(itemTag);
+                    if (tag != null)
+                        successNumber++;
+                }
+            }
         }
-        for (Tag itemTag : tags) {
-            itemTag.setForbidState(mode);
-            tag = saveOne(itemTag);
-            if (tag != null)
-                successNumber++;
+        else {
+            for (Tag itemTag : tags) {
+                itemTag.setForbidState(mode);
+                tag = saveOne(itemTag);
+                if (tag != null)
+                    successNumber++;
+            }
         }
         return new ResponseBean(sum, successNumber);
     }

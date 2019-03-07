@@ -63,10 +63,15 @@ public class TagUtil {
         }
         return result;
     }
-    public static String judgeResultAndSettingRouter(String result, long begin, Router router){
+    public static String judgeResultAndSettingRouter(String result, long begin, Router router,byte[] message){
         RouterService routerService = ((RouterService)SpringContextUtil.getBean("RouterService"));
-        Router newRouter = SettingUtil.settintRouter(router, begin);
-        routerService.saveOne(newRouter);
+        if(message[8]==5 && message[9]==2) {
+            return result;
+        }
+        else{
+            Router newRouter = SettingUtil.settintRouter(router, begin);
+            routerService.saveOne(newRouter);
+        }
         return result;
     }
     public static List<Tag> getTagsByRouters(List<Router> routers){

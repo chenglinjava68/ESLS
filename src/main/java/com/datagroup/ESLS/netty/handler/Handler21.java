@@ -5,19 +5,16 @@ import com.datagroup.ESLS.entity.Style;
 import com.datagroup.ESLS.entity.Tag;
 import com.datagroup.ESLS.netty.command.CommandCategory;
 import com.datagroup.ESLS.netty.command.CommandConstant;
-import com.datagroup.ESLS.service.RouterService;
 import com.datagroup.ESLS.service.StyleService;
 import com.datagroup.ESLS.service.TagService;
 import com.datagroup.ESLS.utils.ByteUtil;
+import com.datagroup.ESLS.utils.SocketChannelHelper;
 import com.datagroup.ESLS.utils.SpringContextUtil;
 import io.netty.channel.Channel;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
-
-import javax.swing.*;
-import java.net.InetSocketAddress;
 import java.sql.Timestamp;
 
 @Component("handler21")
@@ -77,7 +74,8 @@ public class Handler21 implements ServiceHandler{
             tag.setResolutionHeight(resolutionHeight);
             tag.setCompleteTime(new Timestamp(System.currentTimeMillis()));
             // 绑定路由器
-            Router router = SpringContextUtil.getRouterByChannel(channel);
+            Router router = SocketChannelHelper.getRouterByChannel(channel);
+            System.out.println("选择的路由器:"+router);
             tag.setRouter(router);
             // 找到标签对应的样式
             StyleService styleService = ((StyleService)SpringContextUtil.getBean("StyleService"));

@@ -70,6 +70,10 @@ spring:
   jackson:
     date-format: yyyy/MM/dd HH:mm
     time-zone: GMT+8
+#  devtools:
+#    restart:
+#      enabled: true
+#      additional-paths: src/main/java
 # netty配置
 netty:
   server:

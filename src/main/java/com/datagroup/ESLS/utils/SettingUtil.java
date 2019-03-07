@@ -27,8 +27,10 @@ public class SettingUtil {
         return tag;
     }
     public static Router settintRouter(Router router,long begin){
-        router.setHeartBeat(new Timestamp(begin));
+        long end  = System.currentTimeMillis();
+        router.setExecTime((int) (end-begin));
         router.setCompleteTime(new Timestamp(System.currentTimeMillis()));
+        router.setIsWorking((byte) 1);
         return router;
     }
 }

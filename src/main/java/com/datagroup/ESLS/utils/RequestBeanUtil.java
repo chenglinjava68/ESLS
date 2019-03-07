@@ -34,7 +34,10 @@ public class RequestBeanUtil {
         Service service  = (Service)SpringContextUtil.getBean("BaseService");
         for (RequestItem items : requestBean.getItems()){
             List<Tag> tagItem = service.findByArrtribute(TableConstant.TABLE_TAGS, items.getQuery(), items.getQueryString(), Tag.class);
-            tags.addAll(tagItem);
+            for(Tag tag:tagItem)
+                // 标签启用
+                if(tag.getForbidState()!=0)
+                    tags.add(tag);
         }
         return tags;
     }
@@ -43,7 +46,9 @@ public class RequestBeanUtil {
         Service service  = (Service)SpringContextUtil.getBean("BaseService");
         for (RequestItem items : requestBean.getItems()){
             List<Router> routerItem = service.findByArrtribute(TableConstant.TABLE_ROUTERS, items.getQuery(), items.getQueryString(), Router.class);
-            routers.addAll(routerItem);
+            for(Router r:routerItem)
+                if(r.getState()==1)
+                    routers.add(r);
         }
         return routers;
     }

@@ -17,7 +17,7 @@ public class RouterVo {
     private String softVersion;
     private String frequency;
     private String hardVersion;
-    private Timestamp heartBeat;
+    private Integer execTime;
     private String barCode;
     private Byte isWorking;
     private Timestamp completeTime;

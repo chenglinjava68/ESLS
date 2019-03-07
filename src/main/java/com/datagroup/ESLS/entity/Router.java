@@ -37,8 +37,8 @@ public class Router implements Serializable {
     private String frequency;
     @Column(name = "hardVersion")
     private String hardVersion;
-    @Column(name = "heartBeat")
-    private Timestamp heartBeat;
+    @Column(name = "execTime")
+    private Integer execTime;
     @Column(name = "barCode")
     private String barCode;
     @Column(name = "isWorking")
